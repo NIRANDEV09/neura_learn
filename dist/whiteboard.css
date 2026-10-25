@@ -421,8 +421,29 @@
 }
 
 #layer-text text {
-  font-family: 'Caveat', 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive, sans-serif !important;
   user-select: none;
+}
+
+#layer-text text.wb-math-text {
+  font-family: 'STIX Two Text', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif !important;
+  letter-spacing: 0.3px;
+}
+
+#layer-text text.wb-code-text {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+}
+
+/* File Upload & Drag-and-drop */
+.wb-upload-label:hover {
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+  background: #141b24 !important;
+}
+
+.wb-dragover {
+  border-color: #c6f36a !important;
+  background: #172010 !important;
+  box-shadow: 0 0 16px rgba(198, 243, 106, 0.35);
 }
 
 @media (max-width: 1020px) {

@@ -540,6 +540,11 @@ class WhiteboardRenderer {
             }
           });
         }
+
+        // Render arrow label if specified
+        if (action.label || action.text) {
+          this.renderArrowLabel(id, action, x1, y1, x2, y2, strokeColor, animated);
+        }
         return;
       } catch (err) {
         console.warn('Rough arrow fallback for', id, err);
@@ -592,6 +597,33 @@ class WhiteboardRenderer {
     } else {
       el.style.strokeDashoffset = '0';
     }
+
+    // Render arrow label if specified
+    if (action.label || action.text) {
+      this.renderArrowLabel(id, action, x1, y1, x2, y2, strokeColor, animated);
+    }
+  }
+
+  renderArrowLabel(id, action, x1, y1, x2, y2, color, animated) {
+    const lblText = String(action.label || action.text);
+    const theta = Math.atan2(y2 - y1, x2 - x1);
+    const offset = 18;
+    const perpX = -Math.sin(theta) * offset;
+    const perpY = Math.cos(theta) * offset;
+    const midX = (x1 + x2) / 2 + perpX;
+    const midY = (y1 + y2) / 2 + perpY;
+
+    this.renderText(id + '_lbl', {
+      x: midX,
+      y: midY,
+      text: lblText,
+      color: action.labelColor || color,
+      fontSize: action.fontSize || 14,
+      fontWeight: '700',
+      fontFamily: "'STIX Two Text', 'Inter', system-ui, sans-serif",
+      anchor: 'middle',
+      delay: (action.delay || 0) + 150
+    }, animated);
   }
 
   renderText(id, action, animated) {
@@ -607,6 +639,26 @@ class WhiteboardRenderer {
 
     const x = this.normalizeX(action.x);
     const y = this.normalizeY(action.y);
+    const textStr = String(action.text || action.label || '');
+
+    // Mathematical formula and code detection for academic font rendering
+    const isFormula = action.op === 'draw_formula' || action.isFormula || 
+      /([=+\-*/^∑\u2211\u03b8\u03bc\u03c0\u221a\u2264\u2265]|=>|<=|->|lim_|dx|dt|\b(sin|cos|tan|log|ln)\b)/.test(textStr) ||
+      /\b(FBD|Tension|Normal|Gravity|mg|F_net|F_ext|\bkg\b|\bN\b|\bm\/s|\bms\b|a\s*=|\bT\s*=|\bN\s*=|\bf\s*=)/.test(textStr);
+
+    const isCode = action.fontFamily && action.fontFamily.includes('mono');
+
+    if (isFormula) {
+      el.classList.add('wb-math-text');
+    } else if (isCode) {
+      el.classList.add('wb-code-text');
+    } else {
+      el.classList.remove('wb-math-text', 'wb-code-text');
+    }
+
+    const defaultFont = isFormula 
+      ? "'STIX Two Text', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif"
+      : (action.fontFamily || (this.sketchMode ? "'Caveat', 'Kalam', 'Segoe Print', cursive, sans-serif" : "'Inter', -apple-system, sans-serif"));
 
     el.setAttribute('x', x);
     el.setAttribute('y', y);
@@ -614,12 +666,12 @@ class WhiteboardRenderer {
     el.setAttribute('dominant-baseline', 'middle');
     el.setAttribute('fill', action.color || action.fill || '#1c1f24');
     el.setAttribute('font-size', (action.fontSize || 18) + 'px');
-    el.setAttribute('font-weight', action.fontWeight || '700');
-    el.setAttribute('font-family', action.fontFamily || "'Caveat', 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive, sans-serif");
-    el.setAttribute('letter-spacing', '0.5px');
+    el.setAttribute('font-weight', action.fontWeight || (isFormula ? '600' : '700'));
+    el.setAttribute('font-family', defaultFont);
+    el.setAttribute('letter-spacing', isFormula ? '0.3px' : '0.5px');
 
-    // Subtle natural handwriting rotation
-    if (this.sketchMode) {
+    // Natural handwriting rotation only for non-formula labels
+    if (this.sketchMode && !isFormula && !isCode) {
       const hash = String(id).split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
       const jitterAngle = (((hash % 7) - 3) * 0.4).toFixed(1);
       el.setAttribute('transform', `rotate(${jitterAngle} ${x} ${y})`);
@@ -627,7 +679,7 @@ class WhiteboardRenderer {
       el.removeAttribute('transform');
     }
 
-    el.textContent = String(action.text || action.label || '');
+    el.textContent = textStr;
 
     if (animated) {
       el.style.opacity = '0';

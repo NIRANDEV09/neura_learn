@@ -110,12 +110,101 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // --- Image and PDF File Attachment Handling ---
+  window._attachedFile = null;
+  const fileInput = $('wbFileInput');
+  const previewBadge = $('filePreviewBadge');
+  const previewImg = $('filePreviewImg');
+  const previewIcon = $('filePreviewIcon');
+  const previewName = $('filePreviewName');
+  const previewSize = $('filePreviewSize');
+  const removeBtn = $('fileRemoveBtn');
+  const uploadContainer = $('fileUploadContainer');
+  const conceptArea = $('concept');
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+    if (!isImage && !isPdf) {
+      alert('Please upload an image (PNG, JPG, WebP) or PDF document.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const base64 = e.target.result;
+      window._attachedFile = {
+        name: file.name,
+        mimeType: file.type || (isPdf ? 'application/pdf' : 'image/png'),
+        data: base64,
+        size: file.size
+      };
+
+      if (previewName) previewName.textContent = file.name;
+      if (previewSize) previewSize.textContent = `(${formatBytes(file.size)})`;
+
+      if (isImage && previewImg) {
+        previewImg.src = base64;
+        previewImg.style.display = 'inline-block';
+        if (previewIcon) previewIcon.style.display = 'none';
+      } else if (previewIcon) {
+        if (previewImg) previewImg.style.display = 'none';
+        previewIcon.style.display = 'inline-block';
+      }
+
+      if (previewBadge) previewBadge.style.display = 'inline-flex';
+      if ($('wbStatusBar')) $('wbStatusBar').textContent = `Attached ${file.name}. Ready to build live lesson.`;
+
+      if (conceptArea && !conceptArea.value.trim()) {
+        conceptArea.value = `Solve and explain this problem with complete step-by-step Free Body Diagrams (FBD) and equations: ${file.name.replace(/\.[^/.]+$/, '')}`;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  });
+
+  removeBtn?.addEventListener('click', () => {
+    window._attachedFile = null;
+    if (fileInput) fileInput.value = '';
+    if (previewBadge) previewBadge.style.display = 'none';
+    if ($('wbStatusBar')) $('wbStatusBar').textContent = 'Attachment removed.';
+  });
+
+  // Drag and drop handling
+  [conceptArea, uploadContainer].forEach(target => {
+    if (!target) return;
+    target.addEventListener('dragover', e => {
+      e.preventDefault();
+      target.classList.add('wb-dragover');
+    });
+    target.addEventListener('dragleave', () => {
+      target.classList.remove('wb-dragover');
+    });
+    target.addEventListener('drop', e => {
+      e.preventDefault();
+      target.classList.remove('wb-dragover');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleFile(file);
+    });
+  });
+
   // Main Lesson Generation Function
   let activeGenerationController = null;
   async function generateLesson() {
-    const concept = $('concept')?.value?.trim();
-    if (!concept) {
-      if ($('wbStatusBar')) $('wbStatusBar').textContent = 'Please enter a concept to learn.';
+    const concept = $('concept')?.value?.trim() || (window._attachedFile ? `Solve and explain this problem with complete step-by-step Free Body Diagrams (FBD) and equations: ${window._attachedFile.name}` : '');
+    if (!concept && !window._attachedFile) {
+      if ($('wbStatusBar')) $('wbStatusBar').textContent = 'Please enter a question or attach an image / PDF.';
       $('concept')?.focus();
       return;
     }
@@ -127,7 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const buildBtn = $('generateBtn');
     if (buildBtn) buildBtn.disabled = true;
-    if ($('wbStatusBar')) $('wbStatusBar').textContent = 'Preparing your animated whiteboard lesson...';
+    if ($('wbStatusBar')) $('wbStatusBar').textContent = window._attachedFile 
+      ? `Analyzing ${window._attachedFile.name} & generating visual lesson...`
+      : 'Preparing your animated whiteboard lesson...';
     if ($('modelBadge')) $('modelBadge').textContent = 'Connecting...';
 
     const payload = {
@@ -136,6 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
       language: $('language')?.value || 'English',
       preferences: $('preferences')?.value || 'Teach intuitively with animated whiteboard drawings.'
     };
+
+    if (window._attachedFile) {
+      payload.attachment = window._attachedFile;
+    }
 
     try {
       // 1. Try fast first scene / streaming endpoint
