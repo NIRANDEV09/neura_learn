@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if ($('wbStatusBar')) $('wbStatusBar').textContent = `Attached ${file.name}. Ready to build live lesson.`;
 
       if (conceptArea && !conceptArea.value.trim()) {
-        conceptArea.value = `Solve and explain this problem with complete step-by-step Free Body Diagrams (FBD) and equations: ${file.name.replace(/\.[^/.]+$/, '')}`;
+        conceptArea.value = `Solve and explain the question in this ${isImage ? 'image' : 'document'} step-by-step: ${file.name.replace(/\.[^/.]+$/, '')}`;
       }
     };
     reader.readAsDataURL(file);
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Main Lesson Generation Function
   let activeGenerationController = null;
   async function generateLesson() {
-    const concept = $('concept')?.value?.trim() || (window._attachedFile ? `Solve and explain this problem with complete step-by-step Free Body Diagrams (FBD) and equations: ${window._attachedFile.name}` : '');
+    const concept = $('concept')?.value?.trim() || (window._attachedFile ? `Solve and explain the question in the attached ${window._attachedFile.name}` : '');
     if (!concept && !window._attachedFile) {
       if ($('wbStatusBar')) $('wbStatusBar').textContent = 'Please enter a question or attach an image / PDF.';
       $('concept')?.focus();
@@ -233,7 +233,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // 1. Try fast first scene / streaming endpoint
+      // 1. For uploaded questions (images or PDFs), use /api/lesson for complete, end-to-end mathematical solving
+      // This ensures all asked variables (e.g. BOTH acceleration 'a' AND tension 'T') and multiple-choice options are fully solved and highlighted.
+      if (window._attachedFile) {
+        if ($('wbStatusBar')) $('wbStatusBar').textContent = `Analyzing ${window._attachedFile.name} & solving full question...`;
+        if ($('modelBadge')) $('modelBadge').textContent = 'Solving Problem...';
+        const fullRes = await fetch('/api/lesson', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: abortCtrl.signal
+        });
+        if (!fullRes.ok) {
+          const err = await fullRes.json().catch(() => ({}));
+          throw new Error(err.error || `Problem solving failed (${fullRes.status})`);
+        }
+        const lessonData = await fullRes.json();
+        controller.loadLesson(lessonData, true);
+        if ($('modelBadge')) $('modelBadge').textContent = `${lessonData.provider || 'NeuraLearn'} · Solved`;
+        if ($('wbStatusBar')) $('wbStatusBar').textContent = `Full solution ready • ${lessonData.segments?.length || 0} steps`;
+        return;
+      }
+
+      // 2. Otherwise (text topic), try fast first scene / streaming endpoint
       let response;
       try {
         response = await fetch('/api/lesson/first/stream', {

@@ -98,16 +98,32 @@ When teaching mechanics, pulleys, connected blocks, or inclined planes (e.g. JEE
    - Normal force: upward arrow labeled 'N'
    - Tension: arrow along the string labeled 'T'
    - Friction: arrow opposing motion labeled 'f = μ·N'
-   - NEVER emit detached or unlabeled arrows. Give every arrow a descriptive label (e.g. label: "N₁ = 20 N", label: "T").
+   - External forces: arrow in the specified direction with label (e.g. 'F').
+   - NEVER emit detached or unlabeled arrows. Give every arrow a descriptive label (e.g. label: "N", label: "T").
 4. RESOLVED COMPONENTS: On inclined planes, resolve gravity into dashed perpendicular component (mg·cos θ) and parallel component (mg·sin θ).
-5. EQUATIONS: Use 'draw_formula' or clean formula cards for Newton's 2nd law (ΣF = m·a). Show step-by-step substitution and solve for unknowns (a, T) with units.`;
+5. EQUATIONS & NEWTON'S 2ND LAW:
+   - State Newton's 2nd law for each body: (e.g. 'For 2m: 2m·g - T = 2m·a' and 'For m: T - m·g·sin θ - F·cos θ = m·a').
+   - Double check algebraic operations: when adding equations, verify coefficients (e.g. 2mg - mg·sin θ = 3ma, NOT mg!).
+6. FULL QUESTION RESOLUTION (MANDATORY):
+   - Solve for ALL quantities requested in the problem! If the question asks for BOTH acceleration 'a' AND tension 'T', you MUST derive BOTH 'a' and 'T' step-by-step. Never stop after solving for only one variable!
+7. MULTIPLE-CHOICE QUESTION MATCHING & SOLUTION CARD (MANDATORY):
+   - When the question contains multiple-choice options ((A), (B), (C), (D)), identify all options.
+   - In the final segment, evaluate your derived quantities against the options, determine the exact matching option (e.g. Option (A)), and render a prominent green Solution Box on the whiteboard:
+     * Card background: op: 'draw_rect', x: 480, y: 610, width: 440, height: 75, stroke: '#2ea44f', strokeWidth: 2, fill: '#f0fdf4'
+     * Card title: op: 'draw_text', text: '✓ Correct Answer: Option (A)', x: 500, y: 638, fontSize: 18, fontWeight: 'bold', color: '#1c7430'
+     * Card values: op: 'draw_formula', text: 'a = g/3,  T = 4mg/3', x: 500, y: 668, fontSize: 16, color: '#1c7430'
+8. CANVAS LAYOUT ZONES & ANTI-COLLISION (VIEWBOX 0 0 960 700):
+   - DIAGRAM ZONE (Y: 60 - 450, X: 60 - 900): Incline, blocks, pulleys, force arrows.
+   - EQUATIONS ZONE (Y: 480 - 600, X: 60 - 460): Row 1 (y: 500), Row 2 (y: 540), Row 3 (y: 580).
+   - SOLUTION & BOX ZONE (Y: 480 - 685, X: 480 - 930): Row 1 (y: 500), Row 2 (y: 540), Row 3 (y: 580), Solution Card (y: 610 - 685).
+   - Maintain at least 35px vertical separation between text elements. NEVER place text elements at the exact same or overlapping coordinates!`;
 
 function parseModelJson(text){const clean=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();try{return JSON.parse(clean)}catch{}const start=clean.indexOf('{');if(start<0)throw new Error('no JSON object');let depth=0,inString=false,escaped=false;for(let i=start;i<clean.length;i++){const c=clean[i];if(inString){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')inString=false;continue}if(c==='"'){inString=true;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0){return JSON.parse(clean.slice(start,i+1))}}throw new Error('incomplete JSON object')}
 async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, options={}) {
   if (!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'), {status:503});
   const generationConfig={maxOutputTokens, responseMimeType:'application/json', thinkingConfig:{thinkingLevel:options.thinkingLevel||'low'}};
   const userParts = buildGeminiUserParts(user, options.attachment);
-  const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])];
+  const models=[...new Set([MODEL,'gemini-flash-lite-latest','gemini-flash-latest','gemini-3.5-flash','gemini-3.8-flash'])];
   let response,raw,usedModel=MODEL;
   for(const model of models){
     const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(API_KEY)}`;
@@ -131,14 +147,14 @@ async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, o
 async function streamGeminiResponse(system,user,res,options={}) {
   if(!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'),{status:503});
   const userParts = buildGeminiUserParts(user, options.attachment);
-  const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])],controller=new AbortController(),timeoutMs=options.timeoutMs||25000;
+  const models=[...new Set([MODEL,'gemini-flash-lite-latest','gemini-flash-latest','gemini-3.5-flash','gemini-3.8-flash'])],controller=new AbortController(),timeoutMs=options.timeoutMs||30000;
   const timeout=setTimeout(()=>controller.abort(),timeoutMs),started=Date.now();let upstream=null,usedModel=MODEL,lastError='';
   const onClose=()=>{if(!res.writableEnded)controller.abort()};res.on('close',onClose);
   const emit=event=>res.write(JSON.stringify(event)+'\n');
   try {
     for(const model of models){
-      const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
-      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:userParts}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1200,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(API_KEY)}`;
+      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:userParts}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1400,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
       if(upstream.ok){usedModel=model;break;}lastError=await upstream.text();if(upstream.status!==429&&upstream.status!==503)throw Object.assign(new Error(`Gemini API ${upstream.status}: ${lastError.slice(0,500)}`),{status:upstream.status});upstream=null;
     }
     if(!upstream)throw Object.assign(new Error(`Gemini models are busy or unavailable (${lastError.slice(0,300)})`),{status:503});
@@ -241,7 +257,8 @@ async function route(req,res) {
     try{
       const b=await readBody(req);if(!String(b.concept||'').trim())return send(res,400,{error:'Enter a concept first.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         res.writeHead(200,{'Content-Type':'application/x-ndjson; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
         const first = { ...deterministic, segments: deterministic.segments.slice(0,1), provider:'deterministic', model:'tracers', latencyMs:15, partial:true };
@@ -251,23 +268,32 @@ async function route(req,res) {
       }
       if(LLM_PROVIDER!=='gemini')return send(res,503,{error:'Streaming lesson generation requires Gemini.'});
       const level=String(b.level||'university beginner').slice(0,100),language=String(b.language||'English').slice(0,60),preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
-      const system=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
-      const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      return await streamGeminiResponse(system,prompt,res,{timeoutMs:25000,maxOutputTokens:1200,attachment:b.attachment});
+      const system = hasAttachment
+        ? `You are NeuraLearn's vision-equipped AI whiteboard professor. The student uploaded an image or document containing a specific question or diagram. Look at the image carefully. Identify the EXACT problem, scenario, objects, numbers, and diagram shown in the image. Do NOT show a generic textbook example—draw the SPECIFIC diagram for this image! Return ONLY valid JSON: {"title":"Title of this specific problem","overview":"one concise overview sentence","topic":"Roadmap: Setup → Analysis → Equations → Solution","viewBox":"0 0 960 700","segments":[{"heading":"Problem Setup from Image","narration":"one concise opening sentence under 25 words identifying what is given in the uploaded image","duration":2800,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE opening scene establishing the physical setup or diagram for the attached image question. Visible colors only. Pure JSON.`
+        : `You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
+      const prompt = hasAttachment
+        ? `Question / Request: ${concept}\nExamine the attached image or document closely. Extract the specific given values, bodies, and setup from the image, and start drawing the first scene now.`
+        : `Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
+      return await streamGeminiResponse(system,prompt,res,{timeoutMs:35000,maxOutputTokens:1400,attachment:b.attachment});
     }catch(e){return send(res,e.status||500,{error:e.message||'First-scene stream failed.'});}
   }
   if (req.method==='POST' && url.pathname==='/api/lesson/first') {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         return send(res,200,{...deterministic,segments:deterministic.segments.slice(0,1),provider:'deterministic',model:'tracers',latencyMs:15,partial:true});
       }
       const level=String(b.level||'university beginner').slice(0,100), language=String(b.language||'English').slice(0,60), preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
-      const fastSystem=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
-      const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      const first=await askLLM(fastSystem,prompt,0.1,1200,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:18000,attachment:b.attachment});
+      const fastSystem = hasAttachment
+        ? `You are NeuraLearn's vision-equipped AI whiteboard professor. The student uploaded an image or document containing a specific question or diagram. Look at the image carefully. Identify the EXACT problem, scenario, objects, numbers, and diagram shown in the image. Do NOT show a generic textbook example—draw the SPECIFIC diagram for this image! Return ONLY valid JSON: {"title":"Title of this specific problem","overview":"one concise overview sentence","topic":"Roadmap: Setup → Analysis → Equations → Solution","viewBox":"0 0 960 700","segments":[{"heading":"Problem Setup from Image","narration":"one concise opening sentence under 25 words identifying what is given in the uploaded image","duration":2800,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE opening scene establishing the physical setup or diagram for the attached image question. Visible colors only. Pure JSON.`
+        : `You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
+      const prompt = hasAttachment
+        ? `Question / Request: ${concept}\nExamine the attached image or document closely. Extract the specific given values, bodies, and setup from the image, and start drawing the first scene now.`
+        : `Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
+      const first=await askLLM(fastSystem,prompt,0.1,1400,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:25000,attachment:b.attachment});
       if(!Array.isArray(first.segments)||!first.segments.length) throw Object.assign(new Error('Could not create the first teaching scene.'),{status:502});
       return send(res,200,{...first,segments:first.segments.slice(0,1),provider:first._provider||LLM_PROVIDER,model:first._model||ACTIVE_MODEL,latencyMs:first._latencyMs,partial:true});
     } catch(e){return send(res,e.status||500,{error:e.message||'First scene generation failed.'});}
@@ -276,12 +302,23 @@ async function route(req,res) {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Missing lesson concept.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         return send(res,200,{segments:deterministic.segments.slice(1),checkpoint:deterministic.checkpoint,provider:'deterministic',model:'tracers',latencyMs:10,partial:false});
       }
       const opening=String(b.firstNarration||'').slice(0,500);
-      const prompt=`Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with animated whiteboard drawings.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The opening scene is already being taught.'}\nActions already on the board: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening. Build a progressive whiteboard composition in viewBox 0 0 960 700. Add new elements to vacant space or highlight existing ones. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`;
+      const prompt = hasAttachment
+        ? `The learner uploaded an image question: ${concept}.\nThe first scene already drawn from the image is: ${opening}.\nExisting board marks: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}.\nNow solve the remaining steps for THIS SPECIFIC image problem.
+1. Draw Free Body Diagrams with labeled arrows for every force acting on each mass.
+2. Set up Newton's second law equations for each mass. Verify signs and coefficients carefully (e.g. sum of masses).
+3. FULL PROBLEM RESOLUTION: Solve for ALL quantities asked (e.g. BOTH acceleration 'a' AND tension 'T').
+4. MULTIPLE CHOICE RESOLUTION: If the image has options (A, B, C, D), evaluate which option matches, and in the final segment draw a highlighted Solution Box:
+   - rect: x: 480, y: 610, width: 440, height: 75, stroke: '#2ea44f', fill: '#f0fdf4'
+   - text: '✓ Correct Answer: Option (X)' at x: 500, y: 638, fontSize: 18, fontWeight: 'bold', color: '#1c7430'
+   - formula: derived values at x: 500, y: 668, fontSize: 16, color: '#1c7430'
+5. LAYOUT: Separate lines vertically by at least 35px in Y: 480-685. Do not overlap coordinates. Return JSON with {"segments":[...],"checkpoint":{...}}. JSON only.`
+        : `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with animated whiteboard drawings.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The opening scene is already being taught.'}\nActions already on the board: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening. Build a progressive whiteboard composition in viewBox 0 0 960 700. Add new elements to vacant space or highlight existing ones. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`;
       const system=`You are NeuraLearn, a precise visual professor creating an animated SVG whiteboard lesson. ${lessonSchema}`;
       const rest=await askLLM(system,prompt,0.2,8192,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:60000,attachment:b.attachment});
       if(!Array.isArray(rest.segments)) throw Object.assign(new Error('The remaining lesson had no usable segments.'),{status:502});
@@ -292,11 +329,20 @@ async function route(req,res) {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         return send(res,200,{...deterministic,provider:'deterministic',model:'tracers',latencyMs:15});
       }
-      const prompt = `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
+      const prompt = hasAttachment
+        ? `Carefully inspect the attached image or document question: ${concept}
+1. Transcribe the exact question, all given values, masses, angles, applied forces, and any multiple-choice options (A), (B), (C), (D) shown in the image.
+2. Draw the exact physical setup and Free Body Diagrams with clearly labeled force vectors.
+3. Formulate Newton's second law for each body along its direction of motion.
+4. FULL SOLUTION: Solve for ALL variables asked in the question (e.g. if the question asks for acceleration AND tension, calculate both 'a' and 'T' step-by-step with complete mathematical derivation).
+5. OPTION EVALUATION & SOLUTION CARD: Explicitly match the derived solution against the question's options (A, B, C, D) and conclude the lesson with a prominent highlighted Solution Box stating '✓ Correct Answer: Option (X)' with the exact matching values.
+6. LAYOUT: Keep diagram elements in Y: 60-450, and equations in Y: 480-685 with distinct non-overlapping coordinates.`
+        : `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
       const lesson=await askLLM(lessonRules,prompt,0.25,8192,{thinkingLevel:'low',reasoningEffort:'low',attachment:b.attachment}); if(!Array.isArray(lesson.segments)||!lesson.segments.length) throw Object.assign(new Error('Lesson had no usable segments.'),{status:502});
       return send(res,200,{...lesson,provider:lesson._provider||LLM_PROVIDER,model:lesson._model||ACTIVE_MODEL,latencyMs:lesson._latencyMs});
     } catch(e){ return send(res,e.status||500,{error:e.message||'Lesson generation failed.'}); }
