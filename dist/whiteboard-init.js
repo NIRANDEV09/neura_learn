@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.wbController = controller;
+  controller.updateControls();
 
   // Wire Playback Buttons
   $('wbPlayBtn')?.addEventListener('click', () => {
@@ -204,6 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const file = e.dataTransfer?.files?.[0];
       if (file) handleFile(file);
     });
+  });
+
+  conceptArea?.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      generateLesson();
+    }
   });
 
   // Main Lesson Generation Function

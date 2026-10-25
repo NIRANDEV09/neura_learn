@@ -956,6 +956,7 @@ class WhiteboardPlaybackController {
     this.activeGenerationController = null;
 
     this.bindEvents();
+    this.updateControls();
   }
 
   bindEvents() {
@@ -973,8 +974,8 @@ class WhiteboardPlaybackController {
     this.steps = Array.isArray(lessonData?.segments) ? lessonData.segments : [];
     this.currentIndex = 0;
 
-    if (this.titleEl) this.titleEl.textContent = lessonData.title || 'Interactive Whiteboard Lesson';
-    if (this.topicRoadmapEl) this.topicRoadmapEl.textContent = lessonData.topic || lessonData.overview || 'Progressive Whiteboard Explanation';
+    if (this.titleEl) this.titleEl.textContent = (lessonData.title || 'Interactive Whiteboard Lesson').replace(/\*\*/g, '');
+    if (this.topicRoadmapEl) this.topicRoadmapEl.textContent = (lessonData.topic || lessonData.overview || 'Progressive Whiteboard Explanation').replace(/\*\*/g, '');
     if (this.renderer?.svg) {
       this.renderer.svg.setAttribute('viewBox', lessonData.viewBox || '0 0 960 700');
     }
@@ -1001,10 +1002,13 @@ class WhiteboardPlaybackController {
       
       const head = document.createElement('div');
       head.className = 'wb-msg-head';
-      head.textContent = `${idx + 1}. ${step.heading || 'Teaching Step'}`;
+      head.textContent = `${idx + 1}. ${(step.heading || 'Teaching Step').replace(/\*\*/g, '')}`;
 
       const text = document.createElement('p');
-      text.textContent = step.narration || '';
+      text.innerHTML = (step.narration || '')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\*\*/g, '');
 
       msg.append(head, text);
       msg.addEventListener('click', () => {
@@ -1082,7 +1086,8 @@ class WhiteboardPlaybackController {
         }
       };
 
-      const u = new SpeechSynthesisUtterance(text);
+      const cleanSpeech = String(text || '').replace(/\*\*/g, '').replace(/[_#*`]/g, '');
+      const u = new SpeechSynthesisUtterance(cleanSpeech);
       u.rate = this.voiceRate || 1.0;
       u.lang = 'en-US';
 
@@ -1186,6 +1191,25 @@ class WhiteboardPlaybackController {
       this.playBtn.textContent = this.isPlaying ? '⏸ Pause' : (this.isPaused ? '▶ Continue' : '▶ Teach');
       this.playBtn.disabled = total === 0;
     }
+
+    const prevBtn = document.getElementById('prevStepBtn');
+    if (prevBtn) prevBtn.disabled = total === 0 || this.currentIndex <= 0;
+
+    const nextBtn = document.getElementById('nextStepBtn');
+    if (nextBtn) nextBtn.disabled = total === 0 || this.currentIndex >= total - 1;
+
+    const replayBtn = document.getElementById('replayStepBtn');
+    if (replayBtn) replayBtn.disabled = total === 0;
+
+    const resetBtn = document.getElementById('resetLessonBtn');
+    if (resetBtn) resetBtn.disabled = total === 0;
+
+    const dlNotes = document.getElementById('downloadNotesBtn');
+    if (dlNotes) dlNotes.disabled = total === 0;
+
+    const dlSvg = document.getElementById('downloadSvgBtn');
+    if (dlSvg) dlSvg.disabled = total === 0;
+
     if (this.progressEl) {
       this.progressEl.textContent = total > 0 ? `${curr} / ${total}` : '0 / 0';
     }
@@ -1197,7 +1221,7 @@ class WhiteboardPlaybackController {
       this.stepPill.textContent = total > 0 ? `Step ${curr} of ${total}` : 'Ready';
     }
     if (this.statusEl && this.steps[this.currentIndex]) {
-      this.statusEl.textContent = this.steps[this.currentIndex].heading || 'Explaining...';
+      this.statusEl.textContent = (this.steps[this.currentIndex].heading || 'Explaining...').replace(/\*\*/g, '');
     }
   }
 
@@ -1206,19 +1230,23 @@ class WhiteboardPlaybackController {
     if (!q || !Array.isArray(q.options) || !this.quizBox) return;
 
     this.quizBox.style.display = 'block';
-    if (this.quizQuestion) this.quizQuestion.textContent = q.question || 'Check your understanding:';
+    if (this.quizQuestion) this.quizQuestion.textContent = (q.question || 'Check your understanding:').replace(/\*\*/g, '');
     if (this.quizFeedback) this.quizFeedback.textContent = '';
     if (this.quizOptions) {
       this.quizOptions.innerHTML = '';
       q.options.forEach((opt, idx) => {
         const btn = document.createElement('button');
         btn.className = 'quiz-opt-btn';
-        btn.textContent = `${String.fromCharCode(65 + idx)}. ${opt}`;
+        btn.textContent = `${String.fromCharCode(65 + idx)}. ${opt.replace(/\*\*/g, '')}`;
         btn.onclick = () => {
           const isCorrect = idx === q.answerIndex;
           btn.classList.add(isCorrect ? 'correct' : 'incorrect');
           if (this.quizFeedback) {
-            this.quizFeedback.textContent = (isCorrect ? '✓ Correct! ' : '✗ Not quite. ') + (q.explanation || '');
+            const cleanExp = (q.explanation || '')
+              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+              .replace(/\*\*/g, '');
+            this.quizFeedback.innerHTML = (isCorrect ? '✓ Correct! ' : '✗ Not quite. ') + cleanExp;
             this.quizFeedback.className = 'quiz-feedback ' + (isCorrect ? 'correct' : 'incorrect');
           }
         };
