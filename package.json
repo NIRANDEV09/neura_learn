@@ -4,7 +4,7 @@
   "private": true,
   "description": "Adaptive AI tutor with Groq chat, narrated video lessons, and an interactive canvas.",
   "scripts": {
-    "start": "node server.js",
+    "start": "npm run build && node server.js",
     "build": "vite build --config vite.config.mjs"
   },
   "engines": {
