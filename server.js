@@ -56,7 +56,8 @@ const lessonSchema = `Return ONLY valid JSON with this shape:
   "viewBox": "0 0 960 700",
   "segments": [
     {
-      "heading": "Clear teaching objective for this segment",
+      "heading": "Clear teaching objective for this slide",
+      "clearBoard": true,
       "narration": "One to three natural, spoken sentences explaining this step directly.",
       "duration": 2500-6000,
       "actions": [
@@ -87,44 +88,45 @@ const lessonSchema = `Return ONLY valid JSON with this shape:
     "explanation": "Brief explanation of the correct choice."
   }
 }
-Choose the number of segments dynamically based on topic complexity (typically 4-10 segments). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements. The whiteboard persists between segments: subsequent segments add new elements or transform established ones; do not redraw the entire board every segment. Use visible, rich colors: deep slate (#22262b), bright blue (#2b72b8), crimson red (#c93d32), forest green (#2ea44f), warm amber (#e3a83e), purple (#8252a1). Never use white or light yellow strokes on the white board. For paths, provide smooth SVG bezier curves (C, Q, L) that can be drawn with stroke-reveal animations. For processes, use flow markers moving between stages. Output pure JSON without markdown fences.
+Choose the number of segments dynamically based on topic complexity (typically 4-7 slides). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements.
+
+SLIDE-BASED PROGRESSION & VISUAL-FIRST MANDATE:
+1. MULTI-SLIDE PROGRESSION:
+   - Break complex or multi-body topics into distinct, clean visual slides.
+   - Use "clearBoard": true when advancing between major stages, analyzing different bodies (e.g. Slide 1: System Overview, Slide 2: FBD of Body 1, Slide 3: FBD of Body 2, Slide 4: Final Answer Card).
+   - This prevents clutter and keeps each slide fresh, spacious, and focused!
+2. VISUAL-FIRST RATIO (MANDATORY >= 70% VISUAL ACTIONS):
+   - Every slide MUST be dominated by rich visual diagrams, NOT walls of text equations!
+   - Draw geometric shapes with Rough.js hand-drawn styling (blocks, pulleys, cylinders, carts, inclines) with soft color fills ('#e0f2fe', '#fef0ee', '#f0fdf4', '#fef9c3').
+   - Draw labeled force vector arrows ('op': 'draw_arrow') with distinct colors:
+     * Tension: bold purple (#8252a1) with badge 'T'
+     * Gravity/Weight: crimson red (#c93d32) with badge 'm·g'
+     * Normal force: emerald green (#2ea44f) with badge 'N'
+     * Friction: amber orange (#e3a83e) with badge 'f'
+     * Acceleration / Motion: bright blue (#2b72b8) with motion arrow 'a = ...'
+3. TEXT MINIMALISM:
+   - NEVER create slides that are just walls of plain text formulas!
+   - Limit text to at most 2-3 concise formula lines per slide, placed on the right side (X: 520, Y: 220-380) directly adjacent to the visual diagram.
+   - Let the visual diagram and arrows do the teaching, narrated by spoken voice!
 
 PHYSICS & FREE BODY DIAGRAM (FBD) RULES:
 When teaching mechanics, pulleys, connected blocks, or inclined planes (e.g. JEE/NEET physics or uploaded question images/PDFs):
-1. PHYSICAL SETUP: Draw the table surface or incline first with ground hatching marks. Draw pulleys as circles with center axle pins. Draw strings taut between bodies.
-2. BLOCKS: Render blocks as clean rectangles with mass labels inside (e.g. 'm₁ = 2 kg', 'm₂ = 4 kg').
-3. FORCES & FBD: Always anchor force vectors directly to the block edges/center.
-   - Gravity: downward arrow labeled 'm·g'
-   - Normal force: upward arrow labeled 'N'
-   - Tension: arrow along the string labeled 'T'
-   - Friction: arrow opposing motion labeled 'f = μ·N'
-   - External forces: arrow in the specified direction with label (e.g. 'F').
-   - NEVER emit detached or unlabeled arrows. Give every arrow a descriptive label (e.g. label: "N", label: "T").
-4. RESOLVED COMPONENTS: On inclined planes, resolve gravity into dashed perpendicular component (mg·cos θ) and parallel component (mg·sin θ).
-5. EQUATIONS & NEWTON'S 2ND LAW:
-   - State Newton's 2nd law for each body: (e.g. 'For 2m: 2m·g - T = 2m·a' and 'For m: T - m·g·sin θ - F·cos θ = m·a').
-   - Double check algebraic operations: when adding equations, verify coefficients (e.g. 2mg - mg·sin θ = 3ma, NOT mg!).
-6. FULL QUESTION RESOLUTION (MANDATORY):
-   - Solve for ALL quantities requested in the problem! If the question asks for BOTH acceleration 'a' AND tension 'T', you MUST derive BOTH 'a' and 'T' step-by-step. Never stop after solving for only one variable!
-7. MULTIPLE-CHOICE QUESTION MATCHING & SOLUTION CARD (MANDATORY):
-   - When the question contains multiple-choice options ((A), (B), (C), (D)), identify all options.
-   - In the final segment, evaluate your derived quantities against the options, determine the exact matching option (e.g. Option (A)), and render a prominent green Solution Box on the whiteboard:
-     * Card background: op: 'draw_rect', x: 480, y: 610, width: 440, height: 75, stroke: '#2ea44f', strokeWidth: 2, fill: '#f0fdf4'
-     * Card title: op: 'draw_text', text: '✓ Correct Answer: Option (A)', x: 500, y: 638, fontSize: 18, fontWeight: 'bold', color: '#1c7430'
-     * Card values: op: 'draw_formula', text: 'a = g/3,  T = 4mg/3', x: 500, y: 668, fontSize: 16, color: '#1c7430'
-8. CANVAS LAYOUT ZONES & ANTI-COLLISION (VIEWBOX 0 0 960 700):
-   - DIAGRAM ZONE (Y: 60 - 450, X: 60 - 900): Incline, blocks, pulleys, force arrows.
-   - EQUATIONS ZONE (Y: 480 - 600, X: 60 - 460): Row 1 (y: 500), Row 2 (y: 540), Row 3 (y: 580).
-   - SOLUTION & BOX ZONE (Y: 480 - 685, X: 480 - 930): Row 1 (y: 500), Row 2 (y: 540), Row 3 (y: 580), Solution Card (y: 610 - 685).
-   - Maintain at least 35px vertical separation between text elements. NEVER place text elements at the exact same or overlapping coordinates!
-9. MATH TYPOGRAPHY & NOTATION (NO CODE UNDERSCORES):
-   - NEVER output raw programming snake_case underscores in formulas or labels (NEVER write 'm_A', 'm_B', 'N_A', 'f_1', 'f_floor', 'mu', 'm/s^2', '4 * 10').
-   - Use standard mathematical symbols and notation:
-     * Use subscripts: 'm₁', 'm₂', 'm₃' or 'N₁', 'N₂', 'f₁', 'f₂', 'f(floor)'.
-     * Use Greek letters: 'μ' (never 'mu'), 'θ' (never 'theta').
-     * Use math dot for multiplication: '·' (never '*').
-     * Use superscripts: 'm/s²' (never 'm/s^2').
-     * Example: write 'N₁ = m₁·g = 4 · 10 = 40 N' instead of 'N_A = m_A * g = 4 * 10 = 40 N'.`;
+1. PHYSICAL SETUP SLIDE (SLIDE 1):
+   - Draw the full setup with pulleys, blocks (m₁, m₂, m₃), strings, incline/table surface with hatching marks, and the overall acceleration arrow (a ↑ or a ↓).
+2. ISOLATED FREE BODY DIAGRAMS (DEDICATED SLIDES WITH "clearBoard": true):
+   - For multi-body problems (e.g. 3 hanging blocks, incline + hanging block, Atwood machine):
+     DO NOT cram all equations onto one single slide!
+     Dedicate an isolated visual slide for EACH body:
+     * Slide 2 (clearBoard: true): Isolated FBD of Block 3. Draw block m₃ large in the center-left (x: 200, y: 260, w: 150, h: 110). Anchor upward tension arrow T₃, downward weight arrow m₃·g, and acceleration arrow. On the right (x: 520, y: 280), write just 1-2 lines for Newton's 2nd law solving for T₃.
+     * Slide 3 (clearBoard: true): Isolated FBD of Block 2. Draw block m₂ with upward T₂, downward T₃, downward m₂·g. On the right solve for T₂.
+     * Slide 4 (clearBoard: true): Isolated FBD of Block 1. Draw block m₁ with upward T₁, downward T₂, downward m₁·g. On the right solve for T₁.
+3. FINAL ANSWER SLIDE (clearBoard: true):
+   - Clean conclusion slide showing the tension hierarchy (T₁ > T₂ > T₃) and a prominent green Solution Card:
+     * Card background: op: 'draw_rect', x: 260, y: 260, width: 440, height: 95, stroke: '#2ea44f', strokeWidth: 3, fill: '#f0fdf4'
+     * Title: op: 'draw_text', text: '✓ Final Answer: T₁ = 240 N', x: 290, y: 300, fontSize: 22, fontWeight: 'bold', color: '#1c7430'
+     * Subtitle: op: 'draw_text', text: 'Tension in rope 1 supporting all 3 masses is 240 N', x: 290, y: 335, fontSize: 16, color: '#24292f'
+4. MATH TYPOGRAPHY & NOTATION (NO CODE UNDERSCORES):
+   - NEVER output raw programming snake_case underscores in formulas or labels (write 'm₁', 'm₂', 'N₁', 'f₁', 'μ', '·' instead of 'm_A', 'm_B', 'mu', '*'). JSON only, no markdown.`;
 
 function parseModelJson(text){const clean=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();try{return JSON.parse(clean)}catch{}const start=clean.indexOf('{');if(start<0)throw new Error('no JSON object');let depth=0,inString=false,escaped=false;for(let i=start;i<clean.length;i++){const c=clean[i];if(inString){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')inString=false;continue}if(c==='"'){inString=true;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0){return JSON.parse(clean.slice(start,i+1))}}throw new Error('incomplete JSON object')}
 async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, options={}) {
@@ -351,12 +353,12 @@ async function route(req,res) {
       const prompt = hasAttachment
         ? `Carefully inspect the attached image or document question: ${concept}
 1. Transcribe the exact question, all given values, masses, angles, applied forces, and any multiple-choice options (A), (B), (C), (D) shown in the image.
-2. Draw the exact physical setup and Free Body Diagrams with clearly labeled force vectors.
-3. Formulate Newton's second law for each body along its direction of motion.
-4. FULL SOLUTION: Solve for ALL variables asked in the question (e.g. if the question asks for acceleration AND tension, calculate both 'a' and 'T' step-by-step with complete mathematical derivation).
-5. OPTION EVALUATION & SOLUTION CARD: Explicitly match the derived solution against the question's options (A, B, C, D) and conclude the lesson with a prominent highlighted Solution Box stating '✓ Correct Answer: Option (X)' with the exact matching values.
-6. LAYOUT: Keep diagram elements in Y: 60-450, and equations in Y: 480-685 with distinct non-overlapping coordinates.`
-        : `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
+2. VISUAL-FIRST SLIDES (MANDATORY >= 70% DRAWINGS): Break the solution into 4-6 distinct visual slides using 'clearBoard': true between steps.
+3. ISOLATED FREE BODY DIAGRAMS: For each mass/body, dedicate a separate slide to draw its isolated Free Body Diagram with large blocks and colored force vectors (Tension in purple, Gravity in crimson, Acceleration in amber/blue).
+4. MINIMAL TEXT: Do not dump walls of algebra. Place at most 1-2 clean formula lines beside each diagram.
+5. FULL SOLUTION: Solve for all unknowns asked in the question.
+6. FINAL SOLUTION CARD: Conclude with a clean slide featuring a highlighted Solution Card stating '✓ Correct Answer: Option (X)' with the derived values.`
+        : `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nVISUAL-FIRST SLIDES: Create 4-6 distinct visual slides using 'clearBoard': true between major steps. Draw large, colored diagrams and Free Body Diagrams with labeled arrows for every body. Keep text minimal (1-2 formula lines per slide next to diagrams). Do NOT dump walls of text. Generate the lesson now.`;
       const lesson=await askLLM(lessonRules,prompt,0.25,8192,{thinkingLevel:'low',reasoningEffort:'low',attachment:b.attachment}); if(!Array.isArray(lesson.segments)||!lesson.segments.length) throw Object.assign(new Error('Lesson had no usable segments.'),{status:502});
       return send(res,200,{...lesson,provider:lesson._provider||LLM_PROVIDER,model:lesson._model||ACTIVE_MODEL,latencyMs:lesson._latencyMs});
     } catch(e){ return send(res,e.status||500,{error:e.message||'Lesson generation failed.'}); }
