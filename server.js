@@ -29,7 +29,48 @@ function send(res, status, data, type='application/json; charset=utf-8') {
   res.end(type.startsWith('application/json') ? JSON.stringify(data) : data);
 }
 function readBody(req) { return new Promise((resolve,reject)=>{let s=''; req.on('data',c=>{s+=c; if(s.length>1e6) req.destroy();}); req.on('end',()=>{try{resolve(JSON.parse(s||'{}'));}catch(e){reject(e);}}); req.on('error',reject);}); }
-const lessonSchema = `Return ONLY valid JSON with this shape: {"title":"short title","overview":"one sentence","segments":[{"narration":"one natural spoken sentence or short paragraph","visuals":[{"type":"text|line|arrow|circle|rect|formula|dot|curve","x":0-100,"y":0-100,"x2":0-100,"y2":0-100,"w":1-60,"h":1-40,"text":"short label or equation","color":"#hex","size":10-30,"delay":0-1200,"style":"rough|plain"}],"duration":1200-6000}],"checkpoint":{"question":"one short question","options":["...","...","..."],"answerIndex":0,"explanation":"..."}}. Choose the number of segments yourself from the topic complexity and the requested depth; follow any explicit request for brevity, detail, or a target count. Do not force every topic into the same length. Make a short/simple request concise, a normal request complete, and a deep/advanced request substantially more detailed. Continue until the concept and requested scope are fully taught, without padding. Each segment should add a distinct teaching step: intuition, definitions, mechanism, worked example, interpretation, application, and a useful recap as appropriate. Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal claims before answering. For worked examples, show the substitution and check the result. If uncertain, explain the uncertainty instead of inventing a fact. Visual coordinates are percentages of the whiteboard. Never use white or near-white visual colors on the whiteboard; choose clearly visible blue, red, green, purple, orange, or dark gray instead. Every segment must have 3-6 purposeful, specific visuals that directly teach its narration. The whiteboard persists between segments: each segment adds new marks only, reuses established labels, and never redraws the same equation or diagram. Build a clear whiteboard composition with readable labels, correctly placed arrows, equations with units, labeled axes and plotted points when relevant, and a visual change that matches the spoken idea. For worked examples, show the actual values and result; for processes, show ordered stages; for comparisons, show both sides. For data structures, label every node with its concrete value inside the node shape: put list values inside rectangular nodes and tree keys inside circles. Use a small worked example with explicit values; for a doubly linked list show prev/data/next meaning and arrows in both directions, and for trees put parent/child values on the correct nodes and connect them with branches. Never draw empty node boxes or unlabeled tree circles when teaching these structures. Do not invent data or use generic decorative boxes. Avoid overlap and keep visual geometry mathematically faithful. Each segment should be animated stroke-by-stroke. Keep narration concise enough for spoken teaching. Include a checkpoint only if useful; otherwise set checkpoint to null. Use valid JSON, no markdown.`;
+const { matchDeterministicTopic } = require('./lib/deterministic-lessons.js');
+
+const lessonSchema = `Return ONLY valid JSON with this shape:
+{
+  "title": "short, clear title",
+  "overview": "one sentence overview",
+  "topic": "Roadmap: Step 1 → Step 2 → Step 3 → Summary",
+  "viewBox": "0 0 960 700",
+  "segments": [
+    {
+      "heading": "Clear teaching objective for this segment",
+      "narration": "One to three natural, spoken sentences explaining this step directly.",
+      "duration": 2500-6000,
+      "actions": [
+        {
+          "op": "draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula|flow|highlight|reveal",
+          "id": "uniqueId",
+          "d": "SVG path commands like M... C... Q... L... Z",
+          "x": 0-960, "y": 0-700,
+          "width": 10-600, "height": 10-400,
+          "x1": 0-960, "y1": 0-700, "x2": 0-960, "y2": 0-700,
+          "cx": 0-960, "cy": 0-700, "r": 5-150,
+          "stroke": "#hex", "strokeWidth": 1-8,
+          "fill": "none|#hex", "opacity": 0.0-1.0,
+          "text": "concise label, equation or value",
+          "fontSize": 12-28, "fontWeight": "normal|bold|600|700",
+          "anchor": "start|middle|end", "color": "#hex",
+          "duration": 400-2000, "delay": 0-1500,
+          "arrowEnd": true, "pulse": true
+        }
+      ]
+    }
+  ],
+  "checkpoint": {
+    "question": "One concise multiple-choice question testing understanding of this lesson",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 0,
+    "explanation": "Brief explanation of the correct choice."
+  }
+}
+Choose the number of segments dynamically based on topic complexity (typically 4-10 segments). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements. The whiteboard persists between segments: subsequent segments add new elements or transform established ones; do not redraw the entire board every segment. Use visible, rich colors: deep slate (#22262b), bright blue (#2b72b8), crimson red (#c93d32), forest green (#2ea44f), warm amber (#e3a83e), purple (#8252a1). Never use white or light yellow strokes on the white board. For paths, provide smooth SVG bezier curves (C, Q, L) that can be drawn with stroke-reveal animations. For processes, use flow markers moving between stages. Output pure JSON without markdown fences.`;
+
 function parseModelJson(text){const clean=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();try{return JSON.parse(clean)}catch{}const start=clean.indexOf('{');if(start<0)throw new Error('no JSON object');let depth=0,inString=false,escaped=false;for(let i=start;i<clean.length;i++){const c=clean[i];if(inString){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')inString=false;continue}if(c==='"'){inString=true;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0){return JSON.parse(clean.slice(start,i+1))}}throw new Error('incomplete JSON object')}
 async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, options={}) {
   if (!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'), {status:503});
@@ -69,7 +110,7 @@ async function streamGeminiResponse(system,user,res,options={}) {
   try {
     for(const model of models){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
-      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||700,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
+      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1000,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
       if(upstream.ok){usedModel=model;break;}lastError=await upstream.text();if(upstream.status!==429&&upstream.status!==503)throw Object.assign(new Error(`Gemini API ${upstream.status}: ${lastError.slice(0,500)}`),{status:upstream.status});upstream=null;
     }
     if(!upstream)throw Object.assign(new Error(`Gemini models are busy or unavailable (${lastError.slice(0,300)})`),{status:503});
@@ -105,8 +146,36 @@ async function askGroq(system, user, temperature=0.25, maxOutputTokens=4096, opt
 async function askLLM(system,user,temperature=0.25,maxOutputTokens=4096,options={}) {
   return LLM_PROVIDER==='groq' ? askGroq(system,user,temperature,maxOutputTokens,options) : askGemini(system,user,temperature,maxOutputTokens,options);
 }
-const lessonRules = `You are NeuraLearn, a precise and friendly visual professor. Teach the learner's requested concept, level, language, and constraints. Build an adaptive storyboard using the schema below. Be accurate, explain prerequisites when needed, use examples, and make visuals concept-specific. Do not claim to run code. Keep each narration segment independently useful and connected to the previous one. ${lessonSchema}`;
-const interruptRules = `You are NeuraLearn's live lesson editor. The student interrupted an ongoing animated lesson. Return ONLY one valid JSON object with exactly this top-level shape: {"acknowledgement":"one brief spoken sentence","segments":[{"narration":"one to three clear spoken sentences","visuals":[{"type":"text|line|arrow|circle|rect|formula|dot|curve","x":0-100,"y":0-100,"x2":0-100,"y2":0-100,"w":1-60,"h":1-40,"text":"short label or equation","color":"#hex","size":10-30,"delay":0-1200,"style":"rough|plain"}],"duration":1200-6000}],"strategy":"replace|append|clarify"}. Usually return only 1-2 segments and 2-5 visuals per segment; make more only when needed to answer the specific interruption. Respond to the student's actual question or instruction: explain an idea, correct a mistake, redraw or zoom in, slow down, or show an example. Do not include lesson title, overview, or checkpoint fields. Keep the active lesson context; add only new board marks and avoid repeating content already on the board; replace only when correcting/replacing the current explanation, otherwise append or clarify. When answering about lists or trees, put explicit node values inside each box/circle and show the proper pointer or branch directions. Verify facts, equations, arithmetic, signs, and units. Never use white or near-white visual colors; choose a visible color. JSON only, no markdown or text outside the object.`;
+const lessonRules = `You are NeuraLearn, an expert AI whiteboard professor. Teach the learner's requested concept, level, language, and constraints by progressively drawing and annotating an SVG diagram. Be accurate, explain prerequisites when needed, use examples, and make visuals concept-specific. Return valid JSON only. ${lessonSchema}`;
+const interruptRules = `You are NeuraLearn's live whiteboard lesson editor. The student interrupted an ongoing animated lesson with a question or request. Return ONLY one valid JSON object with exactly this shape:
+{
+  "acknowledgement": "one brief spoken sentence answering or clarifying the student's question",
+  "segments": [
+    {
+      "heading": "Focused clarification or zoom-in",
+      "narration": "one to three clear spoken sentences directly answering the question",
+      "duration": 3000-5000,
+      "actions": [
+        {
+          "op": "draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula|flow|highlight|reveal",
+          "id": "patchId",
+          "d": "...",
+          "x": 0-960, "y": 0-700,
+          "x1": 0-960, "y1": 0-700, "x2": 0-960, "y2": 0-700,
+          "cx": 0-960, "cy": 0-700, "r": 5-80,
+          "stroke": "#hex", "strokeWidth": 1-5,
+          "fill": "none|#hex",
+          "text": "short annotation or label",
+          "fontSize": 14-22, "fontWeight": "bold",
+          "color": "#hex", "duration": 800, "delay": 200, "arrowEnd": true
+        }
+      ]
+    }
+  ],
+  "strategy": "append|clarify|replace"
+}
+Usually return 1-2 segments and 2-5 drawing actions per segment. Keep the active lesson context and add only new board marks to clarify the student's question; do not wipe existing marks unless explicitly asked to redraw. JSON only, no markdown.`;
+
 async function route(req,res) {
   const url = new URL(req.url, `http://${req.headers.host||'localhost'}`);
   if (req.method==='OPTIONS') { res.writeHead(204, {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}); return res.end(); }
@@ -128,16 +197,36 @@ async function route(req,res) {
     return;
   }
   if (req.method==='POST' && url.pathname==='/api/lesson/first/stream') {
-    if(LLM_PROVIDER!=='gemini')return send(res,503,{error:'Streaming lesson generation requires Gemini.'});
-    try{const b=await readBody(req);if(!String(b.concept||'').trim())return send(res,400,{error:'Enter a concept first.'});const concept=String(b.concept).slice(0,5000),level=String(b.level||'university beginner').slice(0,100),language=String(b.language||'English').slice(0,60),preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);const system=`You are NeuraLearn's ultra-fast first-frame teacher. Return ONLY valid JSON: {"title":"...","overview":"...","segments":[{"narration":"one concise opening sentence","visuals":[{"type":"text|line|arrow|circle|rect|formula|dot|curve","x":0-100,"y":0-100,"x2":0-100,"y2":0-100,"w":1-60,"h":1-40,"text":"short label or equation","color":"#hex","size":10-30,"delay":0-1200,"style":"rough|plain"}],"duration":1200-3000}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core intuition, not a title card. Use coordinates that fit a 100x100 board. Keep the spoken sentence under 22 words and labels concise. Concept-specific, accurate, no decorative filler. If the request is a linked list or tree, draw a concrete small example and put each data value inside its rectangle/circle node (not only in nearby text); show linked-list prev/next arrows or tree parent/child branches clearly. Never leave data-structure nodes empty. Never use white or near-white colors for visual marks; choose a clearly visible blue, red, green, purple, orange, or dark gray. No checkpoint. JSON only.`;const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;return await streamGeminiResponse(system,prompt,res,{timeoutMs:22000,maxOutputTokens:700});}catch(e){return send(res,e.status||500,{error:e.message||'First-scene stream failed.'});}
+    try{
+      const b=await readBody(req);if(!String(b.concept||'').trim())return send(res,400,{error:'Enter a concept first.'});
+      const concept=String(b.concept).slice(0,5000);
+      const deterministic = await matchDeterministicTopic(concept);
+      if (deterministic) {
+        res.writeHead(200,{'Content-Type':'application/x-ndjson; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
+        const first = { ...deterministic, segments: deterministic.segments.slice(0,1), provider:'deterministic', model:'tracers', latencyMs:15, partial:true };
+        res.write(JSON.stringify({type:'delta', text: JSON.stringify(first)}) + '\n');
+        res.write(JSON.stringify({type:'done', provider:'deterministic', model:'tracers', latencyMs:15}) + '\n');
+        return res.end();
+      }
+      if(LLM_PROVIDER!=='gemini')return send(res,503,{error:'Streaming lesson generation requires Gemini.'});
+      const level=String(b.level||'university beginner').slice(0,100),language=String(b.language||'English').slice(0,60),preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
+      const system=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
+      const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
+      return await streamGeminiResponse(system,prompt,res,{timeoutMs:22000,maxOutputTokens:1000});
+    }catch(e){return send(res,e.status||500,{error:e.message||'First-scene stream failed.'});}
   }
   if (req.method==='POST' && url.pathname==='/api/lesson/first') {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
-      const concept=String(b.concept).slice(0,5000), level=String(b.level||'university beginner').slice(0,100), language=String(b.language||'English').slice(0,60), preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
-      const fastSystem=`You are NeuraLearn's ultra-fast first-frame teacher. Return ONLY valid JSON: {"title":"...","overview":"...","segments":[{"narration":"one concise opening sentence","visuals":[{"type":"text|line|arrow|circle|rect|formula|dot|curve","x":0-100,"y":0-100,"x2":0-100,"y2":0-100,"w":1-60,"h":1-40,"text":"short label or equation","color":"#hex","size":10-30,"delay":0-1200,"style":"rough|plain"}],"duration":1200-3000}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core intuition, not a title card. Use coordinates that fit a 100x100 board. Keep the spoken sentence under 22 words and labels concise. Concept-specific, accurate, no decorative filler. Never use white or near-white colors for visual marks; choose a clearly visible blue, red, green, purple, orange, or dark gray. No checkpoint. JSON only.`;
+      const concept=String(b.concept).slice(0,5000);
+      const deterministic = await matchDeterministicTopic(concept);
+      if (deterministic) {
+        return send(res,200,{...deterministic,segments:deterministic.segments.slice(0,1),provider:'deterministic',model:'tracers',latencyMs:15,partial:true});
+      }
+      const level=String(b.level||'university beginner').slice(0,100), language=String(b.language||'English').slice(0,60), preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
+      const fastSystem=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
       const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      const first=await askLLM(fastSystem,prompt,0.1,700,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:15000});
+      const first=await askLLM(fastSystem,prompt,0.1,1000,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:15000});
       if(!Array.isArray(first.segments)||!first.segments.length) throw Object.assign(new Error('Could not create the first teaching scene.'),{status:502});
       return send(res,200,{...first,segments:first.segments.slice(0,1),provider:first._provider||LLM_PROVIDER,model:first._model||ACTIVE_MODEL,latencyMs:first._latencyMs,partial:true});
     } catch(e){return send(res,e.status||500,{error:e.message||'First scene generation failed.'});}
@@ -145,24 +234,36 @@ async function route(req,res) {
   if (req.method==='POST' && url.pathname==='/api/lesson/rest') {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Missing lesson concept.'});
+      const concept=String(b.concept).slice(0,5000);
+      const deterministic = await matchDeterministicTopic(concept);
+      if (deterministic) {
+        return send(res,200,{segments:deterministic.segments.slice(1),checkpoint:deterministic.checkpoint,provider:'deterministic',model:'tracers',latencyMs:10,partial:false});
+      }
       const opening=String(b.firstNarration||'').slice(0,500);
-      const prompt=`Learner request: ${String(b.concept).slice(0,5000)}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with visuals.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The short opening scene is being generated at the same time and introduces the core intuition.'}\nVisuals already on the board: ${JSON.stringify(Array.isArray(b.firstVisuals)?b.firstVisuals:[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening or intuition. The learner sees one persistent slide-based canvas: later segments add only new marks, never redraw an equation, label, or diagram already established. Make each segment contribute the next distinct teaching step and place added marks in unused clear space. Adapt the number to the concept and requested depth. Return JSON with {"segments":[...],"checkpoint":null or {"question":"...","options":["...","...","..."],"answerIndex":0,"explanation":"..."}}. Choose however many remaining segments are needed for this specific topic and requested depth. Treat explicit words such as brief, overview, detailed, step by step, from zero, or deeply as strong guidance; do not use a fixed segment count. Cover the necessary teaching steps without repetition and stop when the requested scope is complete. Make this a complete connected explanation: define terms, explain why/how, show at least one checked example where useful, interpret the result, and finish with a concise takeaway. Use 2-4 natural spoken sentences per segment, with enough detail to teach rather than merely label. Give each segment 3-6 concrete visuals that accurately match the narration; include units, meaningful annotations, and labeled diagram parts. Verify every calculation, equation, direction, and causal statement. Avoid repetition and filler. JSON only.`;
-      const system=`You are NeuraLearn, a precise visual professor. Continue the current lesson coherently, explaining prerequisites, mechanism, and an example where useful. ${lessonSchema}`;
+      const prompt=`Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with animated whiteboard drawings.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The opening scene is already being taught.'}\nActions already on the board: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening. Build a progressive whiteboard composition in viewBox 0 0 960 700. Add new elements to vacant space or highlight existing ones. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`;
+      const system=`You are NeuraLearn, a precise visual professor creating an animated SVG whiteboard lesson. ${lessonSchema}`;
       const rest=await askLLM(system,prompt,0.2,8192,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:60000});
       if(!Array.isArray(rest.segments)) throw Object.assign(new Error('The remaining lesson had no usable segments.'),{status:502});
       return send(res,200,{segments:rest.segments,checkpoint:rest.checkpoint||null,provider:rest._provider||LLM_PROVIDER,model:rest._model||ACTIVE_MODEL,latencyMs:rest._latencyMs,partial:false});
     } catch(e){return send(res,e.status||500,{error:e.message||'Remaining lesson generation failed.'});}
   }
   if (req.method==='POST' && url.pathname==='/api/lesson') {
-    try { const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
-      const prompt = `Learner request: ${String(b.concept).slice(0,5000)}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with a concrete example and animated hand-drawn visuals.').slice(0,1000)}\nGenerate the lesson now.`;
+    try {
+      const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
+      const concept=String(b.concept).slice(0,5000);
+      const deterministic = await matchDeterministicTopic(concept);
+      if (deterministic) {
+        return send(res,200,{...deterministic,provider:'deterministic',model:'tracers',latencyMs:15});
+      }
+      const prompt = `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
       const lesson=await askLLM(lessonRules,prompt,0.25,8192,{thinkingLevel:'low',reasoningEffort:'low'}); if(!Array.isArray(lesson.segments)||!lesson.segments.length) throw Object.assign(new Error('Lesson had no usable segments.'),{status:502});
       return send(res,200,{...lesson,provider:lesson._provider||LLM_PROVIDER,model:lesson._model||ACTIVE_MODEL,latencyMs:lesson._latencyMs});
     } catch(e){ return send(res,e.status||500,{error:e.message||'Lesson generation failed.'}); }
   }
   if (req.method==='POST' && url.pathname==='/api/interrupt') {
-    try { const b=await readBody(req); if(!String(b.command||'').trim()) return send(res,400,{error:'Say or type what you want changed.'});
-      const context=`Original learner request: ${String(b.concept||'').slice(0,2000)}\nCurrent lesson title: ${String(b.title||'').slice(0,200)}\nRecently explained: ${String(b.recentNarration||'').slice(0,1500)}\nCurrent board marks (avoid repeating these): ${JSON.stringify(Array.isArray(b.currentVisuals)?b.currentVisuals:[]).slice(0,4000)}\nStudent command: ${String(b.command).slice(0,2000)}\nReturn a small, fast patch, usually 1-4 segments, unless the student explicitly asks for a full re-teach. Keep context and continue from here.`;
+    try {
+      const b=await readBody(req); if(!String(b.command||'').trim()) return send(res,400,{error:'Say or type what you want changed.'});
+      const context=`Original learner request: ${String(b.concept||'').slice(0,2000)}\nCurrent lesson title: ${String(b.title||'').slice(0,200)}\nRecently explained: ${String(b.recentNarration||'').slice(0,1500)}\nCurrent board marks (avoid repeating these): ${JSON.stringify(Array.isArray(b.currentVisuals)?b.currentVisuals:[]).slice(0,4000)}\nStudent command: ${String(b.command).slice(0,2000)}\nReturn a small, fast patch, usually 1-3 segments with whiteboard drawing actions, answering the student's question.`;
       const patch=await askLLM(interruptRules,context,0.2,2400,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:30000});
       if(!Array.isArray(patch.segments)||!patch.segments.length)throw Object.assign(new Error('Gemini returned a patch without any visual explanation. Please retry.'),{status:502});
       return send(res,200,patch);
