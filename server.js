@@ -90,12 +90,17 @@ const lessonSchema = `Return ONLY valid JSON with this shape:
 }
 Choose the number of segments dynamically based on topic complexity (typically 4-7 slides). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements.
 
-SLIDE-BASED PROGRESSION & VISUAL-FIRST MANDATE:
-1. MULTI-SLIDE PROGRESSION:
-   - Break complex or multi-body topics into distinct, clean visual slides.
-   - Use "clearBoard": true when advancing between major stages, analyzing different bodies (e.g. Slide 1: System Overview, Slide 2: FBD of Body 1, Slide 3: FBD of Body 2, Slide 4: Final Answer Card).
-   - This prevents clutter and keeps each slide fresh, spacious, and focused!
-2. VISUAL-FIRST RATIO (MANDATORY >= 70% VISUAL ACTIONS):
+ACCURACY & ZERO-ERROR MANDATE:
+1. PHYSICAL ACCURACY:
+   - Weight (W = m·g) MUST act downwards toward Earth.
+   - Normal force (N) MUST act perpendicular away from the contact surface (e.g. N = m·g·cosθ on an incline).
+   - Friction force (f = μ·N) MUST strictly oppose the direction of relative impending motion.
+   - Tension (T) in a taut rope pulls AWAY from each attached body.
+   - Newton's 2nd Law (ΣF = m·a): Always write out ΣF = m·a with explicit directional signs before solving.
+2. ARITHMETIC & NUMERICAL INTEGRITY:
+   - Rigorously calculate and double-check every arithmetic step (e.g. net force divided by total mass). Never output contradictory numbers on the same slide.
+   - For questions from uploaded images (e.g. JEE/NEET questions), solve for ALL requested variables and state which multiple-choice option (A, B, C, or D) matches.
+3. VISUAL-FIRST RATIO (MANDATORY >= 70% VISUAL ACTIONS):
    - Every slide MUST be dominated by rich visual diagrams, NOT walls of text equations!
    - Draw geometric shapes with Rough.js hand-drawn styling (blocks, pulleys, cylinders, carts, inclines) with soft color fills ('#e0f2fe', '#fef0ee', '#f0fdf4', '#fef9c3').
    - Draw labeled force vector arrows ('op': 'draw_arrow') with distinct colors:
@@ -104,27 +109,20 @@ SLIDE-BASED PROGRESSION & VISUAL-FIRST MANDATE:
      * Normal force: emerald green (#2ea44f) with badge 'N'
      * Friction: amber orange (#e3a83e) with badge 'f'
      * Acceleration / Motion: bright blue (#2b72b8) with motion arrow 'a = ...'
-3. TEXT MINIMALISM:
-   - NEVER create slides that are just walls of plain text formulas!
-   - Limit text to at most 2-3 concise formula lines per slide, placed on the right side (X: 520, Y: 220-380) directly adjacent to the visual diagram.
+4. TEXT MINIMALISM:
+   - Limit text to at most 2 concise formula lines per slide, placed on the right side (X: 520, Y: 220-380) directly adjacent to the visual diagram.
    - Let the visual diagram and arrows do the teaching, narrated by spoken voice!
 
 PHYSICS & FREE BODY DIAGRAM (FBD) RULES:
-When teaching mechanics, pulleys, connected blocks, or inclined planes (e.g. JEE/NEET physics or uploaded question images/PDFs):
+When teaching mechanics, pulleys, connected blocks, or inclined planes:
 1. PHYSICAL SETUP SLIDE (SLIDE 1):
    - Draw the full setup with pulleys, blocks (m₁, m₂, m₃), strings, incline/table surface with hatching marks, and the overall acceleration arrow (a ↑ or a ↓).
 2. ISOLATED FREE BODY DIAGRAMS (DEDICATED SLIDES WITH "clearBoard": true):
-   - For multi-body problems (e.g. 3 hanging blocks, incline + hanging block, Atwood machine):
-     DO NOT cram all equations onto one single slide!
-     Dedicate an isolated visual slide for EACH body:
-     * Slide 2 (clearBoard: true): Isolated FBD of Block 3. Draw block m₃ large in the center-left (x: 200, y: 260, w: 150, h: 110). Anchor upward tension arrow T₃, downward weight arrow m₃·g, and acceleration arrow. On the right (x: 520, y: 280), write just 1-2 lines for Newton's 2nd law solving for T₃.
-     * Slide 3 (clearBoard: true): Isolated FBD of Block 2. Draw block m₂ with upward T₂, downward T₃, downward m₂·g. On the right solve for T₂.
-     * Slide 4 (clearBoard: true): Isolated FBD of Block 1. Draw block m₁ with upward T₁, downward T₂, downward m₁·g. On the right solve for T₁.
+   - For multi-body problems: Dedicate an isolated visual slide for EACH body with clearBoard: true so each body's forces are shown cleanly without clutter.
 3. FINAL ANSWER SLIDE (clearBoard: true):
-   - Clean conclusion slide showing the tension hierarchy (T₁ > T₂ > T₃) and a prominent green Solution Card:
+   - Clean conclusion slide featuring a prominent green Solution Card:
      * Card background: op: 'draw_rect', x: 260, y: 260, width: 440, height: 95, stroke: '#2ea44f', strokeWidth: 3, fill: '#f0fdf4'
-     * Title: op: 'draw_text', text: '✓ Final Answer: T₁ = 240 N', x: 290, y: 300, fontSize: 22, fontWeight: 'bold', color: '#1c7430'
-     * Subtitle: op: 'draw_text', text: 'Tension in rope 1 supporting all 3 masses is 240 N', x: 290, y: 335, fontSize: 16, color: '#24292f'
+     * Title: op: 'draw_text', text: '✓ Final Answer: ...', x: 290, y: 300, fontSize: 22, fontWeight: 'bold', color: '#1c7430'
 4. MATH TYPOGRAPHY & NOTATION (NO CODE UNDERSCORES):
    - NEVER output raw programming snake_case underscores in formulas or labels (write 'm₁', 'm₂', 'N₁', 'f₁', 'μ', '·' instead of 'm_A', 'm_B', 'mu', '*'). JSON only, no markdown.`;
 
@@ -214,14 +212,16 @@ async function askLLM(system,user,temperature=0.25,maxOutputTokens=4096,options=
   return LLM_PROVIDER==='groq' ? askGroq(system,user,temperature,maxOutputTokens,options) : askGemini(system,user,temperature,maxOutputTokens,options);
 }
 const lessonRules = `You are NeuraLearn, an expert AI whiteboard professor. Teach the learner's requested concept, level, language, and constraints by progressively drawing and annotating an SVG diagram. Be accurate, explain prerequisites when needed, use examples, and make visuals concept-specific. Return valid JSON only. ${lessonSchema}`;
-const interruptRules = `You are NeuraLearn's live whiteboard lesson editor. The student interrupted an ongoing animated lesson with a specific question or request (e.g. asking to explain differently, asking why a formula works, or asking for clarification).
+const interruptRules = `You are NeuraLearn's live whiteboard lesson editor and presentation generator. The student interrupted an ongoing animated lesson with a question, command, or request (e.g. asking for another example, asking why a formula works, or asking for clarification).
 Return ONLY one valid JSON object with exactly this shape:
 {
-  "acknowledgement": "one brief spoken sentence directly addressing the student's question",
+  "acknowledgement": "one brief spoken sentence directly addressing the student's question or introducing the new example",
   "clearBoard": true,
+  "strategy": "replace|append",
   "segments": [
     {
-      "heading": "Clarification: [Short title of the student's question]",
+      "heading": "Slide [Number]: [Clear Title of this step]",
+      "clearBoard": true,
       "narration": "two to three natural spoken sentences explaining this step directly",
       "duration": 3000-5000,
       "actions": [
@@ -240,13 +240,21 @@ Return ONLY one valid JSON object with exactly this shape:
         }
       ]
     }
-  ],
-  "strategy": "new_slide"
+  ]
 }
-NEW SLIDE MANDATE:
-1. Always create 1-2 dedicated clarification steps that draw a fresh, clean explanation slide on the whiteboard.
-2. Set 'clearBoard': true so the board is cleared for this new clarification slide.
-3. Draw a clear visual diagram (e.g. zoom-in of the specific block, isolated forces, or step-by-step arithmetic) that directly answers their question.
+
+NEW EXAMPLE & MULTI-SLIDE PPT MANDATE:
+1. IF THE STUDENT ASKS FOR "ANOTHER EXAMPLE", "DIFFERENT EXAMPLE", "MORE EXAMPLES", OR "NEW PROBLEM":
+   - You MUST generate a COMPLETE 3 TO 5 SLIDE PRESENTATION (strategy: "replace") demonstrating the new example from start to finish!
+   - Slide 1 (clearBoard: true): New Example Problem Setup (diagram, masses, values, question).
+   - Slide 2 (clearBoard: true): Free Body Diagram with color-coded labeled force vectors (T, mg, N, f).
+   - Slide 3 (clearBoard: true): Governing equations & step-by-step arithmetic.
+   - Slide 4 (clearBoard: true): Final Solution Card with verified result!
+   - NEVER return only 1 step when an example is requested! Always return the complete multi-slide lesson.
+2. FOR SHORT QUESTIONS / CLARIFICATIONS:
+   - Generate 2 dedicated clarification slides with clearBoard: true.
+3. PHYSICAL & NUMERICAL ACCURACY:
+   - Double-check arithmetic. Keep formulas physically exact.
 4. MATH NOTATION: NEVER output raw code snake_case underscores (write 'm₁', 'm₂', 'N₁', 'f₁', 'μ', '·' instead of 'm_A', 'm_B', 'mu', '*'). JSON only, no markdown.`;
 
 async function route(req,res) {
@@ -366,9 +374,14 @@ async function route(req,res) {
   if (req.method==='POST' && url.pathname==='/api/interrupt') {
     try {
       const b=await readBody(req); if(!String(b.command||'').trim()) return send(res,400,{error:'Say or type what you want changed.'});
-      const context=`Original learner request: ${String(b.concept||'').slice(0,2000)}\nCurrent lesson title: ${String(b.title||'').slice(0,200)}\nRecently explained: ${String(b.recentNarration||'').slice(0,1500)}\nCurrent board marks (avoid repeating these): ${JSON.stringify(Array.isArray(b.currentVisuals)?b.currentVisuals:[]).slice(0,4000)}\nStudent command: ${String(b.command).slice(0,2000)}\nReturn a small, fast patch, usually 1-3 segments with whiteboard drawing actions, answering the student's question.`;
-      const patch=await askLLM(interruptRules,context,0.2,2400,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:30000});
+      const cmd = String(b.command).trim();
+      const isExampleReq = /example|another|different|new\s+problem|case|analog/i.test(cmd);
+      const tokenLimit = isExampleReq ? 6144 : 3200;
+      const timeout = isExampleReq ? 60000 : 35000;
+      const context=`Original learner request: ${String(b.concept||'').slice(0,2000)}\nCurrent lesson title: ${String(b.title||'').slice(0,200)}\nRecently explained: ${String(b.recentNarration||'').slice(0,1500)}\nCurrent board marks (avoid repeating these): ${JSON.stringify(Array.isArray(b.currentVisuals)?b.currentVisuals:[]).slice(0,4000)}\nStudent command: ${cmd}\n${isExampleReq ? 'IMPORTANT: The student requested ANOTHER FULL EXAMPLE. You MUST generate 3 to 5 multi-slide PPT segments with clearBoard: true for each slide, strategy: "replace", walking through the entire new example visually from setup to solution!' : 'Return 2 to 3 visual clarification segments with clearBoard: true answering the student question.'}`;
+      const patch=await askLLM(interruptRules,context,0.2,tokenLimit,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:timeout});
       if(!Array.isArray(patch.segments)||!patch.segments.length)throw Object.assign(new Error('Gemini returned a patch without any visual explanation. Please retry.'),{status:502});
+      if(isExampleReq && !patch.strategy) patch.strategy = 'replace';
       return send(res,200,patch);
     } catch(e){ return send(res,e.status||500,{error:e.message||'Could not adapt the lesson.'}); }
   }

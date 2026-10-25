@@ -42,6 +42,146 @@
   font-size: 12px;
 }
 
+/* ========================================================
+   PPT SLIDE CAROUSEL / NAVIGATION STRIP WITH HORIZONTAL SCROLL
+   ======================================================== */
+.wb-slide-deck-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fbf9f4;
+  border-bottom: 1px solid #e8e4dc;
+  overflow: hidden;
+}
+
+.wb-deck-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #2b72b8;
+  background: #eaf3fc;
+  padding: 4px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.wb-deck-arrow {
+  border: 1px solid #cfc7ba;
+  background: #ffffff;
+  color: #17191d;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: none;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.wb-deck-arrow:hover {
+  background: #f0ebe1;
+  border-color: #2b72b8;
+  color: #2b72b8;
+}
+
+.wb-deck-arrow:active {
+  transform: scale(0.92);
+}
+
+.wb-slide-deck {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #cfc7ba transparent;
+  padding: 3px 2px;
+  flex: 1;
+}
+
+.wb-slide-deck::-webkit-scrollbar {
+  height: 6px;
+}
+
+.wb-slide-deck::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wb-slide-deck::-webkit-scrollbar-thumb {
+  background: #d5cec1;
+  border-radius: 999px;
+}
+
+.wb-slide-deck::-webkit-scrollbar-thumb:hover {
+  background: #2b72b8;
+}
+
+.wb-slide-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 5px 12px;
+  background: #ffffff;
+  border: 1px solid #d5cec1;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #4b525d;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  flex: none;
+  min-width: 120px;
+  max-width: 200px;
+  text-align: left;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.wb-slide-chip:hover {
+  background: #f5f8fc;
+  border-color: #2b72b8;
+  color: #17191d;
+  transform: translateY(-1px);
+}
+
+.wb-slide-chip:active {
+  transform: scale(0.97);
+}
+
+.wb-slide-chip.active {
+  background: #2b72b8 !important;
+  border-color: #2b72b8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(43, 114, 184, 0.25);
+}
+
+.wb-slide-chip .chip-num {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.wb-slide-chip.active .chip-num {
+  color: #e0f2fe;
+  opacity: 1;
+}
+
+.wb-slide-chip .chip-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
 /* Scrollable Whiteboard Vector Canvas Area */
 .whiteboard-canvas-area {
   position: relative;

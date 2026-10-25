@@ -24,11 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
     quizBox: $('wbQuizCard'),
     quizQuestion: $('wbQuizQuestion'),
     quizOptions: $('wbQuizOptions'),
-    quizFeedback: $('wbQuizFeedback')
+    quizFeedback: $('wbQuizFeedback'),
+    slideDeck: $('wbSlideDeck'),
+    slideDeckPrev: $('slideDeckPrev'),
+    slideDeckNext: $('slideDeckNext')
   });
 
   window.wbController = controller;
   controller.updateControls();
+  controller.renderSlideDeck();
 
   // Wire Playback Buttons
   $('wbPlayBtn')?.addEventListener('click', () => {
@@ -61,7 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cmd) return;
     input.value = '';
     if (btn) btn.disabled = true;
-    if ($('wbStatusBar')) $('wbStatusBar').textContent = `Drawing new slide for: "${cmd}"...`;
+    const isExample = /example|another|different|new\s+problem/i.test(cmd);
+    if ($('wbStatusBar')) $('wbStatusBar').textContent = isExample 
+      ? `Generating full multi-slide presentation for: "${cmd}"...` 
+      : `Drawing new slide for: "${cmd}"...`;
     try {
       await controller.handleInterruption(cmd, $('concept')?.value?.trim());
     } finally {
