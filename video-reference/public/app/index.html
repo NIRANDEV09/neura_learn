@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>NeuraLearn</title>
+<link rel="stylesheet" href="/app/styles.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 6v13.5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8 13h8M8 17h6"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18"/><path d="m5 16 4-5 4 3 6-8"/><path d="M15 6h4v4"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/><circle cx="12" cy="12" r="6.5"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><path d="M7.5 5h3v14h-3zM13.5 5h3v14h-3z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.5"/><path d="M4 3.5v5h5"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M18 6v12L9 12zM6 6v12"/></symbol>
+<symbol id="i-fwd" viewBox="0 0 24 24"><path d="M6 6v12l9-6zM18 6v12"/></symbol>
+<symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></symbol>
+<symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 4 6M21 9l-4 6"/></symbol>
+<symbol id="i-max" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+<symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></symbol>
+<symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5 3l14 7-6 2-2 6z"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="m4 20 4-1 11-11a2.1 2.1 0 0 0-3-3L5 16z"/><path d="m14 6 3 3"/></symbol>
+<symbol id="i-eraser" viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M3.5 13.5 13 4l7 7-9.5 9.5H8z"/><path d="m9 8 7 7"/></symbol>
+<symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="i-clip" viewBox="0 0 24 24"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7L14 4.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3L15 7.5"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-6 16-3-7z" fill="currentColor"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+<symbol id="i-newchat" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></symbol>
+<symbol id="i-notes" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol>
+<symbol id="i-tree" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M12 7.2v8.6M10.6 6.6 7 15.8M13.4 6.6 17 15.8"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+<symbol id="i-brain" viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a2 2 0 0 0-3-1z"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+<symbol id="i-question" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.6 1.3c0 1.7-2.1 2-2.1 3.7M12 17.5v.5"/></symbol>
+<symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21c-4 0-7-2.8-7-6.8C5 9 10 7.5 10 3c3 1.8 5.5 5 5.5 8 1-.6 1.7-1.6 2-2.8 1.3 1.4 1.5 3.4 1.5 5 0 4-3 7.8-7 7.8z"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+</svg>
+
+<div class="app">
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+<a class="sbrand" href="#/"><span class="brandmark">N</span><span class="sbrandtext">NeuraLearn<small>AI VISUAL TUTOR</small></span></a>
+<nav class="snav">
+<a href="#/" data-nav="home"><svg class="ic"><use href="#i-home"/></svg><span>Home</span></a>
+<a href="#/new" data-nav="new"><svg class="ic"><use href="#i-plus"/></svg><span>New Lesson</span></a>
+<a href="#/library" data-nav="library"><svg class="ic"><use href="#i-book"/></svg><span>My Library</span></a>
+<a href="#/pdf" data-nav="pdf"><svg class="ic"><use href="#i-file"/></svg><span>PDF Tutor</span></a>
+<a href="#/progress" data-nav="progress"><svg class="ic"><use href="#i-chart"/></svg><span>Progress</span></a>
+<button type="button" id="settingsToggle" data-nav="settings"><svg class="ic"><use href="#i-gear"/></svg><span>Settings</span></button>
+</nav>
+<div class="spromo">
+<svg class="ic big"><use href="#i-brain"/></svg>
+<strong>Learn smarter with computed visuals</strong>
+<p>Real algorithm steps, a natural voice and a board you can draw on.</p>
+</div>
+<div class="sstatus"><span id="sideDot" class="sdot"></span><span><strong id="sideState">Connecting</strong><small id="sideModel">Checking the model…</small></span></div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="main">
+<header class="topbar">
+<button id="menuBtn" class="iconbtn menubtn" type="button" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+<form id="topSearch" class="topsearch" role="search">
+<svg class="ic"><use href="#i-search"/></svg>
+<label class="sr-only" for="topQuery">Search topics or ask anything</label>
+<input id="topQuery" type="search" autocomplete="off" maxlength="500" placeholder="Ask anything… (e.g., Inorder traversal, Photosynthesis, etc.)">
+</form>
+<div class="topright">
+<div class="popwrap">
+<button id="modelPill" class="modelpill" type="button" aria-haspopup="true" aria-expanded="false"><span id="connection" class="status"><i></i> Checking model…</span><svg class="ic sm"><use href="#i-down"/></svg></button>
+<div id="modelMenu" class="popover" hidden>
+<h3>AI model</h3>
+<p id="modelInfo" class="hint">Checking…</p>
+<label class="switchrow"><input id="instantToggle" type="checkbox"><span class="track"></span><span><strong>Instant mode</strong><small>No AI calls: narration from the trace, questions answered by replaying steps.</small></span></label>
+<p id="voiceInfo" class="hint"></p>
+</div>
+</div>
+<button id="helpBtn" class="iconbtn" type="button" title="How this page works" aria-label="Show how this page works"><svg class="ic"><use href="#i-question"/></svg></button>
+<button id="themeBtn" class="iconbtn" type="button" aria-label="Switch to dark mode"><svg class="ic"><use href="#i-moon"/></svg></button>
+<div class="popwrap">
+<button id="bellBtn" class="iconbtn" type="button" aria-label="Notifications" aria-expanded="false"><svg class="ic"><use href="#i-bell"/></svg><span id="bellDot" class="belldot" hidden></span></button>
+<div id="bellMenu" class="popover wide" hidden><h3>Notifications</h3><ul id="bellList" class="belllist"><li class="hint">Nothing yet. Lesson results, fact checks and voice changes show up here.</li></ul></div>
+</div>
+<div class="popwrap">
+<button id="avatarBtn" class="avatar" type="button" aria-label="Your profile" aria-expanded="false">S</button>
+<div id="profileMenu" class="popover" hidden>
+<h3>Your profile</h3>
+<div id="accountBox" class="accountbox"></div>
+<div class="field"><label for="profileName">Your name</label><input id="profileName" type="text" maxlength="40" autocomplete="given-name" placeholder="Student"></div>
+<p class="hint">Saved in this browser only. Used to greet you.</p>
+<button id="tourReplay" class="ghostbtn small profiletour" type="button">Show the guide for this page</button>
+</div>
+</div>
+</div>
+</header>
+
+<main id="screenLogin" class="screen page login" hidden>
+<section class="logincard" aria-labelledby="loginTitle">
+<div class="loginbrand"><span class="brandmark">N</span><span><strong>NeuraLearn</strong><small>AI VISUAL TUTOR</small></span></div>
+<h1 id="loginTitle">Welcome back</h1>
+<p id="loginLead" class="lead">Sign in to keep your progress, notes and streak on every device.</p>
+<div id="loginTabs" class="logintabs" role="tablist" aria-label="Sign in or create an account">
+<button type="button" role="tab" id="tabSignIn" class="on" aria-selected="true">Sign in</button>
+<button type="button" role="tab" id="tabSignUp" aria-selected="false">Create account</button>
+</div>
+<form id="loginForm" class="loginform" novalidate>
+<div class="field" id="loginNameRow" hidden><label for="loginName">Your name</label><input id="loginName" type="text" maxlength="40" autocomplete="given-name" placeholder="What should we call you?"></div>
+<div class="field" id="loginEmailRow"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" maxlength="200" required></div>
+<div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" minlength="8" maxlength="200" required></div>
+<p id="loginMsg" class="formmsg" role="status" hidden></p>
+<button id="loginGo" class="primarybtn" type="submit">Sign in</button>
+<button id="loginForgot" class="textlink" type="button">Forgot password?</button>
+</form>
+<div id="loginGuestRow" class="loginguest"><button id="loginGuest" class="ghostbtn" type="button">Continue without an account</button><p class="hint">As a guest, progress stays in this browser. You can sign in later and keep it.</p></div>
+</section>
+</main>
+
+<main id="screenHome" class="screen page home" hidden>
+<section class="welcomebar">
+<div>
+<p class="eyebrow" id="homeGreeting">Good evening</p>
+<h1 id="homeTitle">Ready to learn something new?</h1>
+<p class="lead">Every lesson runs the real algorithm on your input, so each frame on the board is a step that actually happened.</p>
+</div>
+<form id="homeSearch" class="bigsearch" role="search">
+<svg class="ic"><use href="#i-search"/></svg>
+<label class="sr-only" for="homeQuery">Topic or question</label>
+<input id="homeQuery" type="text" autocomplete="off" maxlength="500" placeholder="Try “BFS on graph 1-2, 1-3, 2-4 from 1”">
+<button class="primarybtn" type="submit" id="homeGo">Start</button>
+</form>
+<p id="homeHint" class="hint">Algorithm topics open a lesson you can set up first. Anything else goes to the AI tutor.</p>
+<div id="homeSuggest" class="suggest"><span class="hint">Try:</span></div>
+</section>
+<section id="homeStats" class="statrow" aria-label="Your progress"></section>
+<section id="homeContinue" class="continue" hidden></section>
+<section>
+<div class="sechead"><h2>Recommended next</h2><a class="textlink" href="#/library">See the full library</a></div>
+<div id="homeRecommend" class="topiccards"></div>
+</section>
+</main>
+
+<main id="screenNew" class="screen page" hidden>
+<header class="pagehead"><h1>Start a new lesson</h1><p class="lead">Pick an algorithm, or describe what you want with your own input.</p></header>
+<form id="newSearch" class="bigsearch" role="search">
+<svg class="ic"><use href="#i-search"/></svg>
+<label class="sr-only" for="newQuery">Topic or question</label>
+<input id="newQuery" type="text" autocomplete="off" maxlength="500" placeholder="e.g. merge sort [6, 5, 3, 1, 8, 7] or binary search for 40">
+<button class="primarybtn" type="submit">Start</button>
+</form>
+<div id="newTopics" class="newgrid"></div>
+<section class="tutorcta">
+<div><h3>Studying something else?</h3><p class="hint">The AI tutor explains any topic and draws a visual for it, with a background fact check. Those visuals are generated by a model, not computed.</p></div>
+<a class="ghostbtn" href="#/tutor">Open the AI tutor</a>
+</section>
+</main>
+
+<main id="screenLibrary" class="screen page" hidden>
+<header class="pagehead row"><div><h1>My Library</h1><p class="lead">Six modules in teaching order. Each lesson is computed from your own input.</p></div><div class="progresswrap"><span id="libProgress" class="hint"></span><div class="minibar"><div id="libProgressFill"></div></div></div></header>
+<section id="savedLectures" class="savedshelf" hidden aria-labelledby="savedTitle"><div class="sechead"><h2 id="savedTitle">Saved lectures</h2><span id="savedCount" class="hint"></span></div><div id="savedList" class="savedlist"></div></section>
+<div id="libModules" class="modules"><p class="hint">Loading the curriculum…</p></div>
+</main>
+
+<main id="screenProgress" class="screen page progresspage" hidden>
+<header class="pagehead row"><div><h1>Progress</h1><p id="progLead" class="lead">Finish a lesson and answer its checkpoint to master it.</p></div>
+<div class="progactions"><button id="progExport" class="ghostbtn small" type="button" title="Download every lesson run as a spreadsheet (CSV)">⬇ Export CSV</button><button id="progReset" class="ghostbtn small dangerbtn" type="button">Reset progress</button></div></header>
+<section id="progEmpty" class="card progempty" hidden><h2>Your progress starts with one lesson</h2><p>Finish a lesson and this page fills in: your streak, an activity calendar, what to review and how each module is going.</p><a class="primarybtn" href="#/library">Pick a lesson</a></section>
+<section id="progStats" class="statrow six" aria-label="Your numbers"></section>
+<div class="progressgrid">
+<section class="card progactivity" aria-labelledby="progActTitle"><div class="cardhead"><h2 id="progActTitle">Activity</h2><span id="progHeatHint" class="hint"></span></div>
+<div class="actbody"><div class="actheat"><div class="heatwrap"><div id="progMonths" class="heatmonths" aria-hidden="true"></div><div class="heatbody"><div class="heatdays" aria-hidden="true"><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span></div><div id="progHeat" class="heat" role="img"></div></div></div>
+<div class="heatlegend" aria-hidden="true"><span>Less</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>More</span></div></div>
+<div class="actweek"><div class="weekhead"><h3>This week</h3><span id="progWeekSum" class="hint"></span></div><div id="progWeek" class="weekbars"></div></div></div></section>
+<section class="card" aria-labelledby="progRevTitle"><div class="cardhead"><h2 id="progRevTitle">Needs review</h2><span id="progReviewCount" class="hint"></span></div><ul id="progReview" class="reviewlist"></ul></section>
+<section class="card" aria-labelledby="progModTitle"><div class="cardhead"><h2 id="progModTitle">By module</h2></div><div id="progModules" class="modbars"></div></section>
+<section class="card" aria-labelledby="progHistTitle"><div class="cardhead"><h2 id="progHistTitle">Recent activity</h2></div><ul id="progHistory" class="history"></ul></section>
+</div>
+<dialog id="resetDialog" aria-labelledby="resetTitle"><form method="dialog" class="settings resetform"><h2 id="resetTitle">Reset your progress?</h2>
+<p id="resetText">This clears completed lessons, checkpoints, your streak and the activity log. Your notes and saved lectures stay.</p>
+<label class="settingrow"><input id="resetConfirm" type="checkbox"><span>I understand this can't be undone</span></label>
+<div class="resetbtns"><button class="ghostbtn" value="cancel">Cancel</button><button id="resetGo" class="primarybtn dangerfill" value="reset" disabled>Reset progress</button></div></form></dialog>
+</main>
+
+<main id="screenTopic" class="screen page topic" hidden>
+<nav id="topicCrumbs" class="crumbs" aria-label="Breadcrumb"></nav>
+<header class="topichead">
+<h1 id="topicName">Topic</h1>
+<p id="topicBlurb" class="lead"></p>
+<div id="topicMeta" class="metarow"></div>
+<p id="topicPrereq" class="hint"></p>
+</header>
+<div class="topicgrid">
+<div class="topicmain">
+<section class="card">
+<div class="cardhead"><span class="stepno">1</span><h2>Choose the input</h2></div>
+<form id="topicForm" class="topicform">
+<div class="field"><label id="topicDataLabel" for="topicData">Input</label><input id="topicData" type="text" autocomplete="off" spellcheck="false" maxlength="500"></div>
+<div class="field" id="topicTargetRow" hidden><label id="topicTargetLabel" for="topicTarget">Target</label><input id="topicTarget" type="text" autocomplete="off" inputmode="numeric" maxlength="6"></div>
+<p id="topicHelp" class="hint"></p>
+<div class="examples"><span class="hint">Examples:</span><span id="topicExamples"></span></div>
+<p id="topicMsg" class="formmsg" role="status" hidden></p>
+</form>
+</section>
+<section class="card">
+<div class="cardhead"><span class="stepno">2</span><h2>Check the lesson plan</h2><span id="planTime" class="hint"></span></div>
+<ol id="topicPlan" class="plan"></ol>
+</section>
+</div>
+<aside class="topicside">
+<section class="card previewcard">
+<div class="cardhead"><h2>Preview</h2><span id="previewCaption" class="hint"></span></div>
+<div class="previewboard"><svg id="previewSvg" viewBox="0 0 1000 620" role="img" aria-label="Preview of the lesson's input"></svg></div>
+<p id="previewStats" class="hint"></p>
+</section>
+<section class="card">
+<div class="cardhead"><span class="stepno">3</span><h2>Start</h2></div>
+<label class="settingrow"><input id="topicAi" type="checkbox"><span><strong>AI narration</strong>: a model rewrites the spoken lines; a fact check rejects any line that changes a value.</span></label>
+<div class="field"><label for="topicVoice">Voice</label><select id="topicVoice" class="voice-pick"></select></div><div class="field"><label for="topicStyle">Speaking style</label><select id="topicStyle" class="voice-style"></select></div>
+<button id="topicStart" class="primarybtn startbtn" type="button" disabled>▶ Start lesson</button>
+</section>
+</aside>
+</div>
+</main>
+
+<main id="screenDone" class="screen page done" hidden>
+<section class="donecard">
+<p class="eyebrow">LESSON COMPLETE</p>
+<h1 id="doneTitle">Lesson complete</h1>
+<div id="doneStats" class="donestats"></div>
+<div id="doneCheck" class="donecheck"></div>
+<h2>Key points</h2>
+<ul id="donePoints" class="points"></ul>
+<div class="doneactions">
+<a id="doneNext" class="primarybtn" href="#/">Next lesson</a>
+<button id="doneRetry" class="ghostbtn" type="button">Try another input</button>
+<button id="doneReplay" class="ghostbtn" type="button">↺ Watch again</button>
+<button id="doneAsk" class="ghostbtn" type="button">Ask a question about it</button>
+<a class="textlink" href="#/library">Back to library</a>
+</div>
+</section>
+</main>
+
+<main id="screenLesson" class="screen lesson" hidden>
+<section class="lessoncol">
+<div class="lessonhead">
+<div class="lhtext">
+<nav id="lessonCrumbs" class="crumbs" aria-label="Breadcrumb"><a href="#/">Library</a></nav>
+<p class="livetag"><i></i><span id="sceneKind">LIVE LESSON</span></p>
+<h1 id="lessonTitle">Your lesson starts here</h1>
+<p id="lessonLead" class="lead"></p>
+<div id="lessonTags" class="tags"></div>
+</div>
+<div class="lhnav">
+<span id="sceneCounter" class="steppill">Ready</span>
+<button id="prevScene" class="iconbtn" type="button" aria-label="Previous scene" disabled><svg class="ic"><use href="#i-left"/></svg></button>
+<button id="nextScene" class="iconbtn" type="button" aria-label="Next scene" disabled><svg class="ic"><use href="#i-right"/></svg></button>
+</div>
+</div>
+
+<div class="boardcard" id="boardCard">
+<div class="boardbar">
+<div class="tabs" role="tablist" aria-label="Board views">
+<button type="button" role="tab" class="on" aria-selected="true" data-tab="board"><svg class="ic sm"><use href="#i-pen"/></svg>Whiteboard</button>
+<button type="button" role="tab" aria-selected="false" data-tab="code"><svg class="ic sm"><use href="#i-code"/></svg>Code</button>
+<button type="button" role="tab" aria-selected="false" data-tab="notes"><svg class="ic sm"><use href="#i-notes"/></svg>Notes</button>
+</div>
+<div class="bbright">
+<label class="sr-only" for="zoomSel">Zoom</label>
+<select id="zoomSel"><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
+<button id="zoomBtn" class="iconbtn" type="button" aria-label="Zoom in"><svg class="ic"><use href="#i-zoom"/></svg></button>
+<button id="fullBtn" class="iconbtn" type="button" aria-label="Full screen"><svg class="ic"><use href="#i-max"/></svg></button>
+</div>
+</div>
+<div class="boardbody">
+<div class="tabpane boardpane" data-pane="board">
+<div class="boardmain">
+<div class="boardwrap" id="boardWrap">
+<div id="board" class="board"><div id="welcome" class="welcome"><h2>Ask about any topic</h2><p>The tutor writes an explanation and draws a visual for it, with a background fact check. These visuals are generated by a model, not computed. For algorithms, use the <a href="#/library">library</a>: those lessons run the real algorithm.</p><div class="samplechips"><button class="chip" data-topic="How does the TCP three-way handshake work">TCP handshake</button><button class="chip" data-topic="Explain virtual memory and paging">Virtual memory</button><button class="chip" data-topic="How does photosynthesis work">Photosynthesis</button><button class="chip" data-topic="Explain Ohm's law with an example">Ohm's law</button></div></div><svg id="sceneSvg" viewBox="0 0 1000 620" role="img" aria-label="Animated lesson diagram" hidden></svg><div id="computedBoard" class="cboard" hidden><svg id="csvg" viewBox="0 0 1000 620" role="img" aria-label="Animation of the recorded algorithm steps"></svg><div id="ctrace" class="ctrace" aria-live="polite"></div><div id="cscene" class="cscene" hidden></div><div id="ccheck" class="ccheck" hidden></div><div id="csub" class="csub" aria-live="polite"></div></div><iframe id="lessonFrame" title="Generated interactive visual lesson" sandbox="allow-scripts" referrerpolicy="no-referrer" hidden></iframe><svg id="inkLayer" class="inklayer" viewBox="0 0 1000 620" aria-label="Your drawings"></svg><div id="tsub" class="csub tsub" aria-live="polite" hidden></div><div id="thinkOverlay" class="thinkoverlay" hidden><div class="vloader" aria-hidden="true"><div class="vl-stage"><div class="vl-node n1"></div><div class="vl-edge e1"></div><div class="vl-node n2"></div><div class="vl-edge e2"></div><div class="vl-node n3"></div><div class="vl-token"></div></div><div class="vl-bar"><div class="vl-barfill"></div></div></div><div id="thinkMsg" class="thinkmsg">Understanding your topic</div><p class="thinkhint">Hold tight — your visual is being drawn…</p></div></div>
+</div>
+<section id="keyPoints" class="keypoints" hidden><h4><svg class="ic sm"><use href="#i-bulb"/></svg>Key points</h4><ul id="keyList"></ul></section>
+</div>
+<aside id="tracePanel" class="tracepanel" hidden>
+<h3 id="traceTitle">Steps</h3>
+<p id="traceSub" class="hint"></p>
+<ol id="traceList" class="tracelist"></ol>
+<div id="traceResult" class="traceresult" hidden></div>
+</aside>
+</div>
+<div class="tabpane" data-pane="code" hidden>
+<div class="codehead"><span class="tag" id="codeLang">Python</span><span id="codeNote" class="hint">The highlighted line is the code the current step runs.</span></div>
+<pre id="codeView" class="codeview" aria-live="polite"></pre>
+</div>
+<div class="tabpane" data-pane="notes" hidden>
+<div class="notesgrid">
+<section><h3>Key points</h3><ul id="notesPoints" class="points"></ul><h3>Cost</h3><p id="notesCost" class="hint"></p><h3>Checkpoint</h3><p id="notesCheck" class="hint">Not answered yet.</p></section>
+<section class="mynotes"><label for="myNotes">My notes</label><textarea id="myNotes" placeholder="Write your own notes for this lesson. They are saved in this browser."></textarea><p id="myNotesSaved" class="hint"></p></section>
+</div>
+</div>
+<div class="toolrail" id="toolRail" role="toolbar" aria-label="Drawing tools" aria-orientation="vertical">
+<button type="button" class="tool on" data-tool="select" title="Select (click the board to ask about it)" aria-pressed="true"><svg class="ic"><use href="#i-cursor"/></svg></button>
+<button type="button" class="tool" data-tool="pen" title="Pen" aria-pressed="false"><svg class="ic"><use href="#i-pen"/></svg></button>
+<button type="button" class="tool" data-tool="eraser" title="Eraser" aria-pressed="false"><svg class="ic"><use href="#i-eraser"/></svg></button>
+<button type="button" class="tool" data-tool="text" title="Text" aria-pressed="false"><svg class="ic"><use href="#i-text"/></svg></button>
+<button type="button" class="tool" data-tool="circle" title="Circle" aria-pressed="false"><svg class="ic"><use href="#i-circle"/></svg></button>
+<span class="railsep"></span>
+<button type="button" class="swatch on" data-color="#5b5bf0" style="--sw:#5b5bf0" aria-label="Indigo"></button>
+<button type="button" class="swatch" data-color="#0ea5a4" style="--sw:#0ea5a4" aria-label="Teal"></button>
+<button type="button" class="swatch" data-color="#22a55b" style="--sw:#22a55b" aria-label="Green"></button>
+<button type="button" class="swatch" data-color="#f59e0b" style="--sw:#f59e0b" aria-label="Orange"></button>
+<button type="button" class="swatch" data-color="#d946ef" style="--sw:#d946ef" aria-label="Pink"></button>
+<span class="railsep"></span>
+<button type="button" class="tool" id="inkClear" title="Clear my drawings"><svg class="ic"><use href="#i-trash"/></svg></button>
+</div>
+</div>
+</div>
+
+<div class="player">
+<div class="seekrow"><label class="sr-only" for="seek">Lesson position</label><input id="seek" type="range" min="0" max="1000" value="0" disabled><div class="progressline" aria-hidden="true"><div id="progressFill"></div></div></div>
+<div class="playerrow">
+<div class="transport">
+<button id="prevBeat" class="iconbtn" type="button" title="Previous line (left arrow)" aria-label="Previous line" disabled><svg class="ic"><use href="#i-back"/></svg></button>
+<button id="playBtn" class="playround" type="button" disabled>▶ Play lesson</button>
+<button id="nextBeat" class="iconbtn" type="button" title="Next line (right arrow)" aria-label="Next line" disabled><svg class="ic"><use href="#i-fwd"/></svg></button>
+<label class="sr-only" for="speed">Speed</label>
+<select id="speed" class="speedsel"><option value="0.75">0.75×</option><option value="1" selected>1.0×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option></select><span id="speedLabel" hidden>1×</span>
+<button id="muteBtn" class="iconbtn" type="button" aria-label="Mute voice"><svg class="ic"><use href="#i-vol"/></svg></button>
+<label class="switch"><input id="voiceToggle" type="checkbox" checked><span class="track"></span>Voice</label>
+<label class="sr-only" for="playerVoice">Voice</label><select id="playerVoice" class="voice-pick voicesel"></select>
+<button id="resetBtn" class="ghostbtn small" type="button" disabled>↺ Replay</button>
+<span class="dlwrap"><button id="dlBtn" class="ghostbtn small" type="button" disabled aria-haspopup="true" aria-expanded="false" title="Download this lecture">⬇ Download</button>
+<span id="dlMenu" class="dlmenu" role="menu" hidden><button id="dlFile" type="button" role="menuitem"><strong>Lecture file (.html)</strong><small>Plays offline in any browser, with subtitles, pointer and voice</small></button><button id="dlVideo" type="button" role="menuitem"><strong>Video (.mp4 / .webm)</strong><small>Records the board while the lecture replays. Pick this tab and tick “Share tab audio”</small></button></span></span>
+</div>
+<span class="ptime"><span id="timeNow">0:00</span> / <span id="timeTotal">0:00</span></span>
+</div>
+<p class="kbdhint"><kbd>Space</kbd> pause or play · <kbd>←</kbd> <kbd>→</kbd> step through lines · click anything on the board to ask about it · pick a pen in the tool rail to draw</p>
+</div>
+<div id="sceneStrip" class="scenestrip" aria-label="Lesson scenes" hidden></div>
+</section>
+
+<aside class="tutorcol">
+<section class="panel chatpanel">
+<div class="panelhead">
+<span class="tutoricon"><svg class="ic"><use href="#i-spark"/></svg></span>
+<div class="phtext"><h2>AI Tutor</h2><p class="hint" id="tutorSub">Chat &amp; learn</p></div>
+<span class="phbtns"><button id="newChatBtn" class="iconbtn" type="button" title="Start a new chat" aria-label="Start a new chat"><svg class="ic"><use href="#i-newchat"/></svg></button><button id="chatSettings" class="iconbtn" type="button" title="Voice and settings" aria-label="Voice and settings"><svg class="ic"><use href="#i-sliders"/></svg></button></span>
+</div>
+<label class="verifyrow" for="verifyToggle"><input id="verifyToggle" type="checkbox" checked><span class="track"></span><span class="vtext"><strong id="verifyLabel">Verified</strong><small id="verifyHint">AI answers are fact-checked in the background</small></span></label><div id="errorBox" class="errorbox" role="alert" hidden><span class="errdot">!</span><span id="errorText" class="errtext"></span><button id="errorRetry" class="errretry" type="button">Retry</button><button id="errorClose" class="errclose" type="button" aria-label="Dismiss">✕</button></div>
+<div id="chatThread" class="chatthread"><div class="chatmsg bot">Hi! I'm your AI tutor. During a lesson, ask things like “why did it go left here?” and I pause and answer with new animated scenes at that step. Outside a lesson, ask about any topic for a written answer and a drawn explanation.</div></div>
+<p id="chatStatus" class="chatstatus">Chat with your visual tutor</p>
+<p id="usageTotal" class="usagetotal" aria-live="off" hidden></p>
+<button id="pdfRow" type="button" class="pdfrow"><svg class="ic"><use href="#i-file"/></svg><span><strong>Attach PDF for section-wise learning</strong><small id="pdfStatus">No PDF attached.</small></span><svg class="ic sm"><use href="#i-right"/></svg></button>
+<form id="chatForm" class="chatform">
+<label class="sr-only" for="chatInput">Ask a question or type a topic</label>
+<textarea id="chatInput" rows="3" placeholder="Ask a question or type a topic…" maxlength="3000"></textarea>
+<div class="chatactions"><button id="pdfBtn" type="button" class="iconbtn" title="Attach a PDF" aria-label="Attach a PDF"><svg class="ic"><use href="#i-clip"/></svg></button><input id="pdfInput" type="file" accept=".pdf,application/pdf" hidden><button id="chatSend" type="submit" class="sendround">Ask ↗</button></div>
+</form>
+</section>
+</aside>
+</main>
+</div>
+</div>
+
+<dialog id="settingsDialog"><form method="dialog" class="settings"><div class="panelhead"><h2>Settings</h2><button class="iconbtn" value="cancel" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<fieldset class="voiceset"><legend>Narration voice</legend>
+<div class="field"><label for="settingsVoice">Voice</label><select id="settingsVoice" class="voice-pick"></select></div>
+<div class="field"><label for="settingsStyle">Speaking style (natural voices)</label><select id="settingsStyle" class="voice-style"></select></div>
+<p id="voiceNote" class="hint"></p>
+<button id="voiceTest" class="ghostbtn" type="button">Hear this voice</button><p class="hint">A sample of a natural voice uses one of your voice requests.</p>
+</fieldset>
+<fieldset class="voiceset"><legend>Guided tours</legend><p class="hint">Each page shows its guide the first time you open it. The ? button at the top replays the current one.</p><button id="resetTours" class="ghostbtn" type="button">Show all guides again</button></fieldset>
+<p class="hint">Instant mode is in the model menu at the top. Algorithm lessons are built by running the algorithm on the server; the model only writes the spoken lines. Other topics use the model configured in <code>.env</code>.</p>
+<button class="primarybtn" value="cancel">Done</button></form></dialog>
+
+<script src="/app/models.js" defer></script><script src="/app/usage.js" defer></script><script src="/app/account.js" defer></script><script src="/app/saved.js" defer></script><script src="/app/download.js" defer></script><script src="/app/progress-stats.js" defer></script><script src="/app/boardkit.js" defer></script><script src="/app/voice.js" defer></script><script src="/app/codesamples.js" defer></script><script src="/app/computed.js" defer></script><script src="/app/factcheck.js" defer></script><script src="/app/sources.js" defer></script><script src="/app/app.js" defer></script><script src="/app/boardtools.js" defer></script><script src="/app/tour.js" defer></script><script src="/app/shell.js" defer></script>
+</body>
+</html>

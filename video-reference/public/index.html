@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NeuraLearn · Computed, not hallucinated</title>
+<meta name="description" content="NeuraLearn runs the real algorithm, records every step, and turns it into a narrated lesson you can interrupt. Plus an AI tutor with a background fact check, a PDF tutor, saved lectures and progress that follows you. Built by NETHAN for students learning data structures and algorithms.">
+<meta name="theme-color" content="#5b5bf0">
+<style>
+:root{
+  --bg:#f4f6fb;--surface:#fff;--surface2:#f7f8fc;--ink:#121a3a;--ink2:#3b4466;--muted:#6b7394;--line:#e6e9f3;--line-strong:#d3d8e8;
+  --accent:#5b5bf0;--accent-2:#7c5cf5;--accent-soft:#ecebfe;--teal:#0ea5a4;--teal-soft:#e2f6f5;--orange:#f59e0b;--orange-soft:#fff3dc;--pink:#d946ef;--pink-soft:#fbe8fd;--green:#16a34a;
+  --marker:#f5b301;--marker-soft:#fff4d1;--board:#ffffff;--dot:#e9edf4;
+  --shadow:0 1px 2px rgba(18,26,58,.04),0 10px 30px rgba(18,26,58,.07);--radius:18px;--max:1160px;
+  --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --display:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Cascadia Mono","SF Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b1024;--surface:#131b38;--surface2:#19224a;--ink:#eef0ff;--ink2:#c5cae8;--muted:#8f97bd;--line:#252e5a;--line-strong:#343e70;
+  --accent:#8483ff;--accent-2:#9b84ff;--accent-soft:#25275d;--teal-soft:#103a40;--orange-soft:#3d2f12;--pink-soft:#3b1c45;--marker-soft:#3a3010;--board:#111936;--dot:#1f2850;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.3);color-scheme:dark}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.022em;line-height:1.12;margin:0;text-wrap:balance}
+p{margin:0}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:var(--max);margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:24px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.brandmark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:grid;place-items:center;font-weight:800;font-size:18px}
+.brand small{display:block;font-size:9.5px;letter-spacing:.16em;color:var(--muted);font-weight:700;line-height:1.1}
+.links{display:flex;gap:20px;font-size:14.5px;color:var(--ink2)}
+.links a:hover{color:var(--accent)}
+.navcta{margin-left:auto;display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:11px 18px;font:600 14.5px var(--sans);border:1px solid transparent;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 20px -10px var(--accent)}
+.btn-primary:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--accent) 88%,#000)}
+.btn-ghost{background:var(--surface);border-color:var(--line-strong);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* hero */
+.hero{padding:64px 0 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:48px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:6px 12px;border-radius:999px}
+.hero h1{font-size:clamp(38px,5.4vw,64px);margin:18px 0 0;font-weight:750}
+.hero h1 mark{background:linear-gradient(transparent 62%,var(--marker-soft) 62%);color:inherit;padding:0 .08em}
+.hero .sub{color:var(--ink2);font-size:clamp(16px,1.7vw,18.5px);margin-top:18px;max-width:560px}
+.ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.ctas .btn{padding:13px 22px;font-size:15.5px}
+.trust{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:24px;color:var(--muted);font-size:13.5px}
+.trust span{display:inline-flex;align-items:center;gap:6px}
+.trust .ic{width:16px;height:16px;color:var(--green)}
+
+/* hero board */
+.boardcard{background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.boardbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px}
+.livetag{display:inline-flex;align-items:center;gap:6px;color:var(--teal);font-weight:700;font-size:11.5px;letter-spacing:.1em}
+.livetag i{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+.boardbar .title{font-weight:650}
+.boardbar .step{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.boardbody{display:grid;grid-template-columns:minmax(0,1fr) 168px}
+.board{position:relative;background:var(--board);background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:20px 20px;aspect-ratio:1.35}
+.board svg{position:absolute;inset:0;width:100%;height:100%}
+.edge{stroke:var(--line-strong);stroke-width:3}
+.node circle{fill:var(--surface);stroke:var(--line-strong);stroke-width:3;transition:fill .35s,stroke .35s}
+.node text{font:700 22px var(--sans);fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.node.visit circle{stroke:var(--accent);fill:var(--accent-soft)}
+.node.done circle{stroke:var(--teal);fill:var(--teal-soft)}
+.node.now circle{stroke:var(--marker);fill:var(--marker-soft);stroke-width:4}
+.out{font:600 15px var(--mono);fill:var(--ink2)}
+.out tspan.new{fill:var(--accent)}
+.ptr{transition:transform .65s cubic-bezier(.33,.9,.3,1)}
+.ptr .rod{fill:#b5814c;stroke:#7a532f;stroke-width:1}.ptr .grip{fill:#3b3834}.ptr .tip{fill:#1f1d1b}.ptr .shadow{fill:rgba(18,26,58,.14)}
+.ptr .ripple{fill:none;stroke:var(--marker);stroke-width:3;opacity:0;transform-box:fill-box;transform-origin:center}
+.ptr.tap .ripple{animation:ripple .7s ease-out}
+@keyframes ripple{0%{opacity:.95;transform:scale(.4)}100%{opacity:0;transform:scale(2.6)}}
+.subtitle{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:max-content;max-width:90%;background:rgba(10,14,38,.84);color:#fff;font-size:14px;padding:7px 13px;border-radius:10px;text-align:center}
+.subtitle b{color:var(--marker)}
+.steps{border-left:1px solid var(--line);padding:14px 12px;font-size:12.5px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.steps h4{margin:0 0 6px;font-size:11px;letter-spacing:.12em;color:var(--muted)}
+.steps li{list-style:none;padding:6px 8px;border-radius:8px;color:var(--muted);display:flex;gap:6px;align-items:center;transition:background .3s,color .3s}
+.steps li.on{background:var(--accent-soft);color:var(--accent);font-weight:650}
+.steps li.ok{color:var(--teal)}
+.steps ol{margin:0;padding:0}
+.ask{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink2)}
+.ask .bubble{background:var(--accent);color:#fff;padding:6px 11px;border-radius:12px 12px 4px 12px;font-weight:550}
+.ask .hint{color:var(--muted);font-size:12.5px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 16px}
+.stat b{display:block;font:750 30px var(--display);letter-spacing:-.02em}
+.stat span{font-size:13.5px;color:var(--muted)}
+
+/* sections */
+section{padding:76px 0}
+.kick{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+h2.sec{font-size:clamp(28px,3.6vw,44px);max-width:760px}
+.lead{color:var(--ink2);font-size:17.5px;margin-top:14px;max-width:680px}
+.problem{margin-top:28px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--marker);border-radius:var(--radius);padding:28px 30px;box-shadow:var(--shadow)}
+.problem p{font-size:clamp(17px,2vw,20px);color:var(--ink2);line-height:1.65}
+.problem strong{color:var(--ink)}
+
+/* two halves */
+.halves{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:36px}
+.half{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:var(--shadow)}
+.half .tag{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;margin-bottom:12px}
+.half.computed .tag{background:var(--teal-soft);color:var(--teal)}
+.half.tutor .tag{background:var(--accent-soft);color:var(--accent)}
+.half h3{font-size:22px}
+.half p{color:var(--ink2);margin-top:8px}
+.half ul{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:9px}
+.half li{display:flex;gap:10px;font-size:15px;color:var(--ink2)}
+.half li .ic{width:18px;height:18px;margin-top:3px;color:var(--green)}
+
+/* features */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+.feat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:transform .2s ease,border-color .2s ease}
+.feat:hover{transform:translateY(-3px);border-color:var(--line-strong)}
+.feat .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;margin-bottom:14px}
+.feat .icon .ic{width:22px;height:22px}
+.i-v{background:var(--accent-soft);color:var(--accent)}.i-t{background:var(--teal-soft);color:var(--teal)}.i-o{background:var(--orange-soft);color:var(--orange)}.i-p{background:var(--pink-soft);color:var(--pink)}
+.feat h3{font-size:17.5px;margin-bottom:6px}
+.feat p{font-size:14.5px;color:var(--ink2)}
+
+/* how */
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:36px;counter-reset:s}
+.howstep{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:relative}
+.howstep .n{font:700 13px var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px;display:inline-block}
+.howstep h3{font-size:18px;margin:12px 0 6px}
+.howstep p{font-size:14.5px;color:var(--ink2)}
+
+/* demo */
+.demo{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-radius:26px;padding:48px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px;align-items:center}
+.demo .kick{color:#fff;opacity:.85}
+.demo h2{font-size:clamp(26px,3.2vw,38px)}
+.demo p{opacity:.9;margin-top:12px}
+.demo ol{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:d}
+.demo li{counter-increment:d;display:flex;gap:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 14px;font-size:15px}
+.demo li::before{content:counter(d);font:700 13px var(--mono);background:#fff;color:var(--accent);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none}
+.demo .btn{background:#fff;color:var(--accent);margin-top:22px}
+.demo .btn:hover{transform:translateY(-1px)}
+
+/* pricing */
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;align-items:stretch}
+.price{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:28px;display:flex;flex-direction:column;position:relative}
+.price.hot{border:2px solid var(--accent);box-shadow:0 20px 50px -25px var(--accent)}
+.price .badge{position:absolute;top:-12px;left:28px;background:var(--accent);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
+.price h3{font-size:18px}
+.amt{font:750 40px var(--display);letter-spacing:-.02em;margin:10px 0 2px}
+.amt small{font:500 14px var(--sans);color:var(--muted)}
+.price ul{list-style:none;margin:16px 0 24px;padding:0;display:grid;gap:9px;font-size:14.5px;color:var(--ink2)}
+.price li{display:flex;gap:8px}.price li .ic{width:17px;height:17px;margin-top:3px;color:var(--accent)}
+.price .btn{margin-top:auto}
+
+/* founder */
+.founder{margin-top:28px;display:flex;align-items:center;gap:20px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px 26px;max-width:560px}
+.av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--marker),var(--pink));color:#fff;display:grid;place-items:center;font:800 26px var(--display);flex:none}
+.founder h3{font-size:19px}.founder span{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.08em}
+
+/* faq */
+.faq{margin-top:28px;max-width:780px;display:grid;gap:10px}
+.faq details{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px}
+.faq summary{cursor:pointer;font-weight:650;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--accent);font-weight:700;font-size:20px;line-height:1}
+.faq details[open] summary::after{content:"−"}
+.faq p{color:var(--ink2);margin-top:10px;font-size:15px}
+
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--muted);font-size:14px}
+.foot{display:flex;gap:14px 24px;align-items:center;flex-wrap:wrap}
+.foot .sp{margin-left:auto}
+.foot a:hover{color:var(--accent)}
+
+/* reveal on scroll (content is visible without JavaScript) */
+.js .rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.js .rv.vis{opacity:1;transform:none}
+
+@media (max-width:980px){
+  .links{display:none}
+  .hero{grid-template-columns:1fr;padding-top:40px;gap:32px}
+  .halves,.demo{grid-template-columns:1fr}
+  .features,.prices{grid-template-columns:1fr 1fr}
+  .how{grid-template-columns:1fr 1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .demo{padding:32px 24px}
+}
+@media (max-width:640px){
+  .features,.prices,.how{grid-template-columns:1fr}
+  .boardbody{grid-template-columns:1fr}
+  .steps{display:none}
+  .board{aspect-ratio:.95}
+  .board svg{height:82%}
+  .subtitle{font-size:13px;bottom:10px;padding:6px 10px}
+  .ask{flex-direction:column;align-items:flex-start;gap:6px}
+  .navcta .btn-ghost{display:none}
+  section{padding:56px 0}
+  .problem{padding:22px}
+  .founder{flex-direction:column;align-items:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8a8 8 0 0 0 16 0v-3a2 2 0 0 0-4 0"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10a6 6 0 0 1-6 6H8"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21c-4 0-7-2.8-7-6.8C5 9 10 7.5 10 3c3 1.8 5.5 5 5.5 8 1-.6 1.7-1.6 2-2.8 1.3 1.4 1.5 3.4 1.5 5 0 4-3 7.8-7 7.8z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14l4-4"/><path d="M3.3 17a9 9 0 1 1 17.4 0"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.4a5 5 0 0 1 7 0M5 12.8a10 10 0 0 1 4.2-2.4M12 20h.01M16.7 10.6A10 10 0 0 1 19 12.8M2 9a15 15 0 0 1 4.2-2.7M10.7 5.1A15 15 0 0 1 22 9"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<nav aria-label="Main">
+  <div class="nav-in">
+    <a class="brand" href="#top"><span class="brandmark">N</span><span>NeuraLearn<small>BY NETHAN</small></span></a>
+    <div class="links"><a href="#product">Product</a><a href="#features">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div>
+    <div class="navcta"><a class="btn btn-ghost" href="/app/#/login">Sign in</a><a class="btn btn-primary" href="/app/">Open the app</a></div>
+  </div>
+</nav>
+
+<main id="top">
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <span class="eyebrow">For DSA, exams and placement prep</span>
+      <h1>Animations that are <mark>computed</mark>, not hallucinated.</h1>
+      <p class="sub">NeuraLearn runs the real algorithm on your input, records every step, and turns that trace into a narrated lesson. Pause any time and ask why: the answer comes back as new animated scenes, right where you stopped.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="/app/"><svg class="ic"><use href="#i-play"/></svg>Start learning free</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <div class="trust">
+        <span><svg class="ic"><use href="#i-check"/></svg>No install, runs in the browser</span>
+        <span><svg class="ic"><use href="#i-check"/></svg>Works without an account</span>
+        <span><svg class="ic"><use href="#i-check"/></svg>Guided tour on your first visit</span>
+      </div>
+    </div>
+
+    <figure class="boardcard" style="margin:0" aria-label="Example: an inorder traversal lesson, computed step by step">
+      <div class="boardbar"><span class="livetag"><i></i>LIVE</span><span class="title">Inorder traversal</span><span class="step" id="hStep">Step 1 of 7</span></div>
+      <div class="boardbody">
+        <div class="board">
+          <svg viewBox="0 0 560 415" role="img" aria-label="Binary tree with values 1 to 7; the pointer visits them in order">
+            <g>
+              <line class="edge" x1="280" y1="70" x2="160" y2="170"/><line class="edge" x1="280" y1="70" x2="400" y2="170"/>
+              <line class="edge" x1="160" y1="170" x2="95" y2="270"/><line class="edge" x1="160" y1="170" x2="225" y2="270"/>
+              <line class="edge" x1="400" y1="170" x2="335" y2="270"/><line class="edge" x1="400" y1="170" x2="465" y2="270"/>
+            </g>
+            <g id="nodes"></g>
+            <text class="out" x="24" y="352" id="hOut">output: [ ]</text>
+            <g class="ptr" id="hPtr" transform="translate(600 460)">
+              <circle class="ripple" r="10"/>
+              <polygon class="shadow" points="4.9,11.1 170.2,271.1 181.8,263.3 8.3,8.9" transform="translate(7 9)"/>
+              <polygon class="rod" points="3.4,8.5 133.5,211.4 141.5,206.1 6.5,6.5"/>
+              <polygon class="grip" points="133.2,211.6 175.7,279.4 187.3,271.7 141.8,205.9"/>
+              <circle class="tip" cx="2.8" cy="4.2" r="5.5"/>
+            </g>
+          </svg>
+          <div class="subtitle" id="hSub">Go left from <b>4</b> until there is no left child.</div>
+        </div>
+        <div class="steps" aria-hidden="true">
+          <h4>RECORDED STEPS</h4>
+          <ol id="hSteps"></ol>
+        </div>
+      </div>
+      <div class="ask"><span class="bubble">Why is 1 printed first?</span><span class="hint">Questions pause the lesson and add new scenes at that step.</span></div>
+    </figure>
+  </header>
+
+  <div class="stats">
+    <div class="stat rv"><b>0</b><span>frames drawn by the AI in computed lessons</span></div>
+    <div class="stat rv"><b>14</b><span>algorithms traced step by step</span></div>
+    <div class="stat rv"><b>~2 s</b><span>to the first words of an AI tutor answer</span></div>
+    <div class="stat rv"><b>4</b><span>AI models, with automatic switching when one is busy</span></div>
+  </div>
+</div>
+
+<section class="wrap" id="problem">
+  <div class="kick rv">The problem</div>
+  <h2 class="sec rv">DSA is still taught as static pictures.</h2>
+  <div class="problem rv"><p>Students preparing for exams and placement interviews learn recursion, traversals and sorting from slides and recorded videos. A video can't answer <strong>“why did it go left here?”</strong>, and a chatbot that draws a diagram can draw it wrong. When you are learning an algorithm, <strong>a wrong picture is worse than no picture.</strong></p></div>
+</section>
+
+<section class="wrap" id="product">
+  <div class="kick rv">The product</div>
+  <h2 class="sec rv">A professor you can interrupt, and a tutor for everything else.</h2>
+  <div class="halves">
+    <article class="half computed rv">
+      <span class="tag">Computed lessons</span>
+      <h3>Algorithms, run for real</h3>
+      <p>Pick a lesson or type your own input. Every frame on the board is a state the algorithm actually reached.</p>
+      <ul>
+        <li><svg class="ic"><use href="#i-check"/></svg>Stacks and queues, recursion, searching, sorting, binary trees and graphs</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Your own data, like “binary search for 4 in [9, 3, 7, 1]”</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>The Python line for each step, highlighted as it runs</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Checkpoints whose answers come from the trace, not a model</li>
+      </ul>
+    </article>
+    <article class="half tutor rv">
+      <span class="tag">AI tutor</span>
+      <h3>Any topic, explained and drawn</h3>
+      <p>Ask about networking, physics or a chapter of your notes. The answer streams in, then a lecture is drawn part by part.</p>
+      <ul>
+        <li><svg class="ic"><use href="#i-check"/></svg>Background fact check that flags doubtful sentences</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>A teacher's pointer, subtitles and a choice of voices</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>PDF tutor: each section of your document becomes a lecture</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Lectures saved to your library, and downloadable as a file or video</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section class="wrap" id="features">
+  <div class="kick rv">Features</div>
+  <h2 class="sec rv">Built for how students actually study.</h2>
+  <div class="features">
+    <div class="feat rv"><div class="icon i-v"><svg class="ic"><use href="#i-gear"/></svg></div><h3>Computed animations</h3><p>Tree, array, graph, stack, queue and recursion-tree views, all driven by running the algorithm.</p></div>
+    <div class="feat rv"><div class="icon i-o"><svg class="ic"><use href="#i-hand"/></svg></div><h3>Interrupt the professor</h3><p>Ask mid-lesson and get one to three new scenes at that exact step. The server re-runs the algorithm, so answers stay true.</p></div>
+    <div class="feat rv"><div class="icon i-t"><svg class="ic"><use href="#i-branch"/></svg></div><h3>Checkpoint branching</h3><p>Miss a checkpoint and the lesson explains the misconception another way before moving on.</p></div>
+    <div class="feat rv"><div class="icon i-t"><svg class="ic"><use href="#i-shield"/></svg></div><h3>Verified mode</h3><p>An independent check of every AI answer: rules for maths and complexities, plus a second opinion before anything is marked wrong.</p></div>
+    <div class="feat rv"><div class="icon i-p"><svg class="ic"><use href="#i-file"/></svg></div><h3>PDF tutor</h3><p>Your PDF is read in the browser, never uploaded, and taught section by section after a summary of the whole document.</p></div>
+    <div class="feat rv"><div class="icon i-v"><svg class="ic"><use href="#i-save"/></svg></div><h3>Saved lectures and downloads</h3><p>Finished lectures land in your library and replay instantly. Download one as an offline file or record it as a video.</p></div>
+    <div class="feat rv"><div class="icon i-o"><svg class="ic"><use href="#i-flame"/></svg></div><h3>Progress and streaks</h3><p>Completed lessons, checkpoints, time spent and a daily streak, saved to your account and on every device.</p></div>
+    <div class="feat rv"><div class="icon i-p"><svg class="ic"><use href="#i-map"/></svg></div><h3>Guided tours</h3><p>Every page shows you around the first time, with the same pointer the lessons use. The ? button replays it.</p></div>
+    <div class="feat rv"><div class="icon i-v"><svg class="ic"><use href="#i-gauge"/></svg></div><h3>Clear about cost</h3><p>Each AI answer shows the tokens it used and how long it took, plus a total for your session.</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="how">
+  <div class="kick rv">How it works</div>
+  <h2 class="sec rv">The AI directs the lesson. It doesn't draw it.</h2>
+  <p class="lead rv">No video model and no guesswork. The engine executes, the AI explains, and a validator checks every scene before you see it.</p>
+  <div class="how">
+    <div class="howstep rv"><span class="n">01</span><h3>Route</h3><p>Your topic is matched to an algorithm, and the input values are read from what you typed.</p></div>
+    <div class="howstep rv"><span class="n">02</span><h3>Execute</h3><p>The engine runs the algorithm and records every state: each node visited, each comparison, each swap.</p></div>
+    <div class="howstep rv"><span class="n">03</span><h3>Narrate</h3><p>The trace becomes scenes. The AI may reword the narration, and any line that changes a value is thrown out.</p></div>
+    <div class="howstep rv"><span class="n">04</span><h3>Play and branch</h3><p>Voice, subtitles and the pointer stay in sync. Questions add scenes; a wrong checkpoint branches to a new explanation.</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="demo">
+  <div class="demo rv">
+    <div>
+      <div class="kick">Try it in two minutes</div>
+      <h2>See a lesson you can talk back to.</h2>
+      <p>No account needed. The first time you open the app, a short guided tour shows you around.</p>
+      <a class="btn" href="/app/"><svg class="ic"><use href="#i-play"/></svg>Open the app</a>
+    </div>
+    <ol>
+      <li>Type “inorder traversal” and press Start.</li>
+      <li>Pause on any step and ask “why don't we print the root first?”</li>
+      <li>Answer the checkpoint wrong on purpose and watch the lesson branch.</li>
+      <li>Ask the AI tutor “how does TCP work?” and watch it fact-check itself.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="wrap" id="pricing">
+  <div class="kick rv">Pricing</div>
+  <h2 class="sec rv">Free for students. Licensed for institutes.</h2>
+  <div class="prices">
+    <div class="price rv"><h3>Learner</h3><div class="amt">Free<small> forever</small></div>
+      <ul><li><svg class="ic"><use href="#i-check"/></svg><span><b>25</b> lessons a month</span></li><li><svg class="ic"><use href="#i-check"/></svg>Every computed visualizer</li><li><svg class="ic"><use href="#i-check"/></svg>Interrupt-the-professor questions</li><li><svg class="ic"><use href="#i-check"/></svg>Offline instant mode</li></ul>
+      <a class="btn btn-ghost" href="/app/">Start learning</a></div>
+    <div class="price hot rv"><span class="badge">MOST POPULAR</span><h3>Pro</h3><div class="amt">₹499<small> / month</small></div>
+      <ul><li><svg class="ic"><use href="#i-check"/></svg><span><b>Unlimited</b> lessons and questions</span></li><li><svg class="ic"><use href="#i-check"/></svg>AI narration and the AI tutor</li><li><svg class="ic"><use href="#i-check"/></svg>PDF tutor for your own notes</li><li><svg class="ic"><use href="#i-check"/></svg>Saved lectures and video downloads</li></ul>
+      <a class="btn btn-primary" href="#founder">Talk to us</a></div>
+    <div class="price rv"><h3>Coaching institutes</h3><div class="amt">Licence</div>
+      <ul><li><svg class="ic"><use href="#i-check"/></svg>Batch licences for students</li><li><svg class="ic"><use href="#i-check"/></svg>Private deployment</li><li><svg class="ic"><use href="#i-check"/></svg>LMS export (roadmap)</li><li><svg class="ic"><use href="#i-check"/></svg>Custom problem sets (roadmap)</li></ul>
+      <a class="btn btn-ghost" href="#founder">Contact</a></div>
+  </div>
+</section>
+
+<section class="wrap" id="founder">
+  <div class="kick rv">The founder</div>
+  <h2 class="sec rv">Built by NETHAN.</h2>
+  <p class="lead rv">One builder, one obsession: teaching that finally feels alive.</p>
+  <div class="founder rv"><div class="av">N</div><div><h3>NETHAN R A</h3><span>FOUNDER</span></div></div>
+</section>
+
+<section class="wrap" id="faq">
+  <div class="kick rv">FAQ</div>
+  <h2 class="sec rv">Questions, answered.</h2>
+  <div class="faq">
+    <details class="rv"><summary>Why can't a computed animation be wrong?</summary><p>Because nobody draws it. The engine runs the algorithm on your input and records each state. Every frame you see is one of those states, and checkpoint answers are read from the same trace. The AI only writes the spoken explanation, and any line that names a value not in its step is replaced with the computed sentence.</p></details>
+    <details class="rv"><summary>Which topics are computed today?</summary><p>Fourteen: stacks and queues; recursion (Fibonacci); binary search; bubble, insertion, selection and merge sort; inorder, preorder, postorder and level-order traversal; and breadth-first and depth-first search on graphs. Any other topic goes to the AI tutor, which writes an explanation and draws a lecture with a background fact check. Those lectures are generated, not computed.</p></details>
+    <details class="rv"><summary>How is this different from AI video tools or chatbots?</summary><p>Those show what a model predicts, and the picture can be wrong. NeuraLearn animates recorded execution states in the browser, and you can interrupt it mid-lesson and get new scenes back. For other topics, the AI tutor's answers are checked in the background and doubtful lines are flagged.</p></details>
+    <details class="rv"><summary>Do I need an account?</summary><p>No. You can learn as a guest and your progress stays in your browser. Create a free account to keep progress, notes, your streak and saved lectures on every device; whatever you did as a guest comes with you.</p></details>
+    <details class="rv"><summary>Is my data safe?</summary><p>API keys live only on the server. Your account data is stored with row level security, so only you can read it. PDFs are read in your browser and are never uploaded.</p></details>
+    <details class="rv"><summary>Where does it go after DSA?</summary><p>Physics with real simulations and maths with a computer algebra system, using the same rule: compute first, explain second.</p></details>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a class="brand" href="#top"><span class="brandmark">N</span><span>NeuraLearn</span></a>
+    <span>by NETHAN · 2026</span>
+    <a href="/app/">Open the app</a><a href="/app/#/login">Sign in</a>
+    <span class="sp">Founded by NETHAN R A</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  // Reveal sections as they scroll into view.
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('vis'); io.unobserve(e.target); } }); }, { threshold: .12 }) : null;
+  document.querySelectorAll('.rv').forEach(function (el) { io ? io.observe(el) : el.classList.add('vis'); });
+
+  // Hero board: an inorder traversal of a 7-node tree, step by step, with the
+  // same wooden pointer the app's lessons use.
+  var NS = 'http://www.w3.org/2000/svg';
+  var nodes = { 4: [280, 70], 2: [160, 170], 6: [400, 170], 1: [95, 270], 3: [225, 270], 5: [335, 270], 7: [465, 270] };
+  var g = document.getElementById('nodes'), els = {};
+  Object.keys(nodes).forEach(function (v) {
+    var n = document.createElementNS(NS, 'g'); n.setAttribute('class', 'node');
+    var c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', nodes[v][0]); c.setAttribute('cy', nodes[v][1]); c.setAttribute('r', 30);
+    var t = document.createElementNS(NS, 'text'); t.setAttribute('x', nodes[v][0]); t.setAttribute('y', nodes[v][1]); t.textContent = v;
+    n.append(c, t); g.append(n); els[v] = n;
+  });
+  var steps = [
+    { v: 1, path: [4, 2, 1], say: 'Go left from <b>4</b> to <b>2</b> to <b>1</b>. No left child, so print <b>1</b>.' },
+    { v: 2, path: [], say: 'Back up to <b>2</b>: its left side is done, so print <b>2</b>.' },
+    { v: 3, path: [], say: 'Visit the right child of 2 and print <b>3</b>.' },
+    { v: 4, path: [], say: 'The whole left subtree is done. Print the root, <b>4</b>.' },
+    { v: 5, path: [6], say: 'Go right to 6, then left to <b>5</b>, and print it.' },
+    { v: 6, path: [], say: 'Back to <b>6</b>: left side done, print <b>6</b>.' },
+    { v: 7, path: [], say: 'Last, the right child <b>7</b>. Output is sorted: 1 to 7.' }
+  ];
+  var ptr = document.getElementById('hPtr'), sub = document.getElementById('hSub'), out = document.getElementById('hOut'), stepEl = document.getElementById('hStep'), list = document.getElementById('hSteps');
+  steps.forEach(function (s, i) { var li = document.createElement('li'); li.textContent = (i + 1) + '. print ' + s.v; list.append(li); });
+  var printed = [], i = 0, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function aim(v) {
+    var p = nodes[v]; ptr.setAttribute('transform', 'translate(' + (p[0] - 6) + ' ' + (p[1] + 18) + ')');
+    ptr.style.transform = 'translate(' + (p[0] - 6) + 'px,' + (p[1] + 18) + 'px)'; ptr.removeAttribute('transform');
+    setTimeout(function () { ptr.classList.remove('tap'); void ptr.getBBox(); ptr.classList.add('tap'); }, 600);
+  }
+  function show(k) {
+    var s = steps[k];
+    Object.keys(els).forEach(function (v) { els[v].classList.remove('now', 'visit'); });
+    s.path.forEach(function (v) { els[v].classList.add('visit'); });
+    printed.forEach(function (v) { els[v].classList.add('done'); });
+    els[s.v].classList.add('now');
+    printed.push(s.v);
+    out.innerHTML = 'output: [ ' + printed.map(function (v, j) { return j === printed.length - 1 ? '<tspan class="new">' + v + '</tspan>' : v; }).join(', ') + ' ]';
+    sub.innerHTML = s.say;
+    stepEl.textContent = 'Step ' + (k + 1) + ' of ' + steps.length;
+    [].forEach.call(list.children, function (li, j) { li.className = j < k ? 'ok' : j === k ? 'on' : ''; });
+    aim(s.v);
+  }
+  function tick() {
+    if (i === steps.length) { printed = []; i = 0; Object.keys(els).forEach(function (v) { els[v].classList.remove('done', 'now', 'visit'); }); }
+    show(i++);
+  }
+  ptr.style.transform = 'translate(600px,460px)'; ptr.removeAttribute('transform');
+  if (still) { for (var k = 0; k < 4; k++) tick(); return; }
+  setTimeout(tick, 500);
+  setInterval(function () { if (!document.hidden) tick(); }, 2600);
+})();
+</script>
+</body>
+</html>

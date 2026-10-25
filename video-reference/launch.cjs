@@ -1,0 +1,3 @@
+const fs=require('node:fs');const path=require('node:path');
+const envPath=path.join(__dirname,'..','.env');try{for(const line of fs.readFileSync(envPath,'utf8').split(/\r?\n/)){const m=line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);if(m&&!m[1].startsWith('#')&&process.env[m[1]]===undefined)process.env[m[1]]=m[2].replace(/^(['"])(.*)\1$/,'$2')}}catch{}
+process.argv[1]=path.join(__dirname,'server.mjs');process.env.PORT='3005';process.env.LLM_PROVIDER='gemini';process.env.GEMINI_MODEL='gemini-flash-lite-latest';process.env.GEMINI_MODELS='gemini-flash-lite-latest';import('./server.mjs').catch(e=>{console.error(e);process.exitCode=1});
