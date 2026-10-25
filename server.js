@@ -107,7 +107,7 @@ async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, o
   if (!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'), {status:503});
   const generationConfig={maxOutputTokens, responseMimeType:'application/json', thinkingConfig:{thinkingLevel:options.thinkingLevel||'low'}};
   const userParts = buildGeminiUserParts(user, options.attachment);
-  const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])];
+  const models=[...new Set([MODEL,'gemini-flash-lite-latest','gemini-flash-latest','gemini-3.5-flash','gemini-3.8-flash'])];
   let response,raw,usedModel=MODEL;
   for(const model of models){
     const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(API_KEY)}`;
@@ -131,14 +131,14 @@ async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, o
 async function streamGeminiResponse(system,user,res,options={}) {
   if(!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'),{status:503});
   const userParts = buildGeminiUserParts(user, options.attachment);
-  const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])],controller=new AbortController(),timeoutMs=options.timeoutMs||25000;
+  const models=[...new Set([MODEL,'gemini-flash-lite-latest','gemini-flash-latest','gemini-3.5-flash','gemini-3.8-flash'])],controller=new AbortController(),timeoutMs=options.timeoutMs||30000;
   const timeout=setTimeout(()=>controller.abort(),timeoutMs),started=Date.now();let upstream=null,usedModel=MODEL,lastError='';
   const onClose=()=>{if(!res.writableEnded)controller.abort()};res.on('close',onClose);
   const emit=event=>res.write(JSON.stringify(event)+'\n');
   try {
     for(const model of models){
-      const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
-      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:userParts}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1200,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(API_KEY)}`;
+      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:userParts}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1400,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
       if(upstream.ok){usedModel=model;break;}lastError=await upstream.text();if(upstream.status!==429&&upstream.status!==503)throw Object.assign(new Error(`Gemini API ${upstream.status}: ${lastError.slice(0,500)}`),{status:upstream.status});upstream=null;
     }
     if(!upstream)throw Object.assign(new Error(`Gemini models are busy or unavailable (${lastError.slice(0,300)})`),{status:503});
@@ -241,7 +241,8 @@ async function route(req,res) {
     try{
       const b=await readBody(req);if(!String(b.concept||'').trim())return send(res,400,{error:'Enter a concept first.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         res.writeHead(200,{'Content-Type':'application/x-ndjson; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
         const first = { ...deterministic, segments: deterministic.segments.slice(0,1), provider:'deterministic', model:'tracers', latencyMs:15, partial:true };
@@ -251,23 +252,32 @@ async function route(req,res) {
       }
       if(LLM_PROVIDER!=='gemini')return send(res,503,{error:'Streaming lesson generation requires Gemini.'});
       const level=String(b.level||'university beginner').slice(0,100),language=String(b.language||'English').slice(0,60),preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
-      const system=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
-      const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      return await streamGeminiResponse(system,prompt,res,{timeoutMs:25000,maxOutputTokens:1200,attachment:b.attachment});
+      const system = hasAttachment
+        ? `You are NeuraLearn's vision-equipped AI whiteboard professor. The student uploaded an image or document containing a specific question or diagram. Look at the image carefully. Identify the EXACT problem, scenario, objects, numbers, and diagram shown in the image. Do NOT show a generic textbook example—draw the SPECIFIC diagram for this image! Return ONLY valid JSON: {"title":"Title of this specific problem","overview":"one concise overview sentence","topic":"Roadmap: Setup → Analysis → Equations → Solution","viewBox":"0 0 960 700","segments":[{"heading":"Problem Setup from Image","narration":"one concise opening sentence under 25 words identifying what is given in the uploaded image","duration":2800,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE opening scene establishing the physical setup or diagram for the attached image question. Visible colors only. Pure JSON.`
+        : `You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
+      const prompt = hasAttachment
+        ? `Question / Request: ${concept}\nExamine the attached image or document closely. Extract the specific given values, bodies, and setup from the image, and start drawing the first scene now.`
+        : `Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
+      return await streamGeminiResponse(system,prompt,res,{timeoutMs:35000,maxOutputTokens:1400,attachment:b.attachment});
     }catch(e){return send(res,e.status||500,{error:e.message||'First-scene stream failed.'});}
   }
   if (req.method==='POST' && url.pathname==='/api/lesson/first') {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         return send(res,200,{...deterministic,segments:deterministic.segments.slice(0,1),provider:'deterministic',model:'tracers',latencyMs:15,partial:true});
       }
       const level=String(b.level||'university beginner').slice(0,100), language=String(b.language||'English').slice(0,60), preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
-      const fastSystem=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
-      const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      const first=await askLLM(fastSystem,prompt,0.1,1200,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:18000,attachment:b.attachment});
+      const fastSystem = hasAttachment
+        ? `You are NeuraLearn's vision-equipped AI whiteboard professor. The student uploaded an image or document containing a specific question or diagram. Look at the image carefully. Identify the EXACT problem, scenario, objects, numbers, and diagram shown in the image. Do NOT show a generic textbook example—draw the SPECIFIC diagram for this image! Return ONLY valid JSON: {"title":"Title of this specific problem","overview":"one concise overview sentence","topic":"Roadmap: Setup → Analysis → Equations → Solution","viewBox":"0 0 960 700","segments":[{"heading":"Problem Setup from Image","narration":"one concise opening sentence under 25 words identifying what is given in the uploaded image","duration":2800,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE opening scene establishing the physical setup or diagram for the attached image question. Visible colors only. Pure JSON.`
+        : `You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
+      const prompt = hasAttachment
+        ? `Question / Request: ${concept}\nExamine the attached image or document closely. Extract the specific given values, bodies, and setup from the image, and start drawing the first scene now.`
+        : `Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
+      const first=await askLLM(fastSystem,prompt,0.1,1400,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:25000,attachment:b.attachment});
       if(!Array.isArray(first.segments)||!first.segments.length) throw Object.assign(new Error('Could not create the first teaching scene.'),{status:502});
       return send(res,200,{...first,segments:first.segments.slice(0,1),provider:first._provider||LLM_PROVIDER,model:first._model||ACTIVE_MODEL,latencyMs:first._latencyMs,partial:true});
     } catch(e){return send(res,e.status||500,{error:e.message||'First scene generation failed.'});}
@@ -276,12 +286,15 @@ async function route(req,res) {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Missing lesson concept.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         return send(res,200,{segments:deterministic.segments.slice(1),checkpoint:deterministic.checkpoint,provider:'deterministic',model:'tracers',latencyMs:10,partial:false});
       }
       const opening=String(b.firstNarration||'').slice(0,500);
-      const prompt=`Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with animated whiteboard drawings.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The opening scene is already being taught.'}\nActions already on the board: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening. Build a progressive whiteboard composition in viewBox 0 0 960 700. Add new elements to vacant space or highlight existing ones. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`;
+      const prompt = hasAttachment
+        ? `The learner uploaded an image question: ${concept}.\nThe first scene already drawn from the image is: ${opening}.\nExisting board marks: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}.\nNow solve the remaining steps for THIS SPECIFIC image problem. Draw Free Body Diagrams (with labeled arrows for every force), step-by-step mathematical derivations, and boxed numerical answers. Build a progressive whiteboard composition in viewBox 0 0 960 700. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`
+        : `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with animated whiteboard drawings.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The opening scene is already being taught.'}\nActions already on the board: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening. Build a progressive whiteboard composition in viewBox 0 0 960 700. Add new elements to vacant space or highlight existing ones. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`;
       const system=`You are NeuraLearn, a precise visual professor creating an animated SVG whiteboard lesson. ${lessonSchema}`;
       const rest=await askLLM(system,prompt,0.2,8192,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:60000,attachment:b.attachment});
       if(!Array.isArray(rest.segments)) throw Object.assign(new Error('The remaining lesson had no usable segments.'),{status:502});
@@ -292,11 +305,14 @@ async function route(req,res) {
     try {
       const b=await readBody(req); if(!String(b.concept||'').trim()) return send(res,400,{error:'Enter a concept first.'});
       const concept=String(b.concept).slice(0,5000);
-      const deterministic = await matchDeterministicTopic(concept);
+      const hasAttachment = !!(b.attachment && b.attachment.data);
+      const deterministic = !hasAttachment ? await matchDeterministicTopic(concept, hasAttachment) : null;
       if (deterministic) {
         return send(res,200,{...deterministic,provider:'deterministic',model:'tracers',latencyMs:15});
       }
-      const prompt = `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
+      const prompt = hasAttachment
+        ? `Carefully inspect the attached image question: ${concept}\nIdentify the specific question, objects, forces, numbers, and geometry from the image. Solve and teach this specific problem step-by-step on the animated SVG whiteboard with accurate diagrams, free body diagrams, and mathematical calculations.`
+        : `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
       const lesson=await askLLM(lessonRules,prompt,0.25,8192,{thinkingLevel:'low',reasoningEffort:'low',attachment:b.attachment}); if(!Array.isArray(lesson.segments)||!lesson.segments.length) throw Object.assign(new Error('Lesson had no usable segments.'),{status:502});
       return send(res,200,{...lesson,provider:lesson._provider||LLM_PROVIDER,model:lesson._model||ACTIVE_MODEL,latencyMs:lesson._latencyMs});
     } catch(e){ return send(res,e.status||500,{error:e.message||'Lesson generation failed.'}); }

@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if ($('wbStatusBar')) $('wbStatusBar').textContent = `Attached ${file.name}. Ready to build live lesson.`;
 
       if (conceptArea && !conceptArea.value.trim()) {
-        conceptArea.value = `Solve and explain this problem with complete step-by-step Free Body Diagrams (FBD) and equations: ${file.name.replace(/\.[^/.]+$/, '')}`;
+        conceptArea.value = `Solve and explain the question in this ${isImage ? 'image' : 'document'} step-by-step: ${file.name.replace(/\.[^/.]+$/, '')}`;
       }
     };
     reader.readAsDataURL(file);
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Main Lesson Generation Function
   let activeGenerationController = null;
   async function generateLesson() {
-    const concept = $('concept')?.value?.trim() || (window._attachedFile ? `Solve and explain this problem with complete step-by-step Free Body Diagrams (FBD) and equations: ${window._attachedFile.name}` : '');
+    const concept = $('concept')?.value?.trim() || (window._attachedFile ? `Solve and explain the question in the attached ${window._attachedFile.name}` : '');
     if (!concept && !window._attachedFile) {
       if ($('wbStatusBar')) $('wbStatusBar').textContent = 'Please enter a question or attach an image / PDF.';
       $('concept')?.focus();
