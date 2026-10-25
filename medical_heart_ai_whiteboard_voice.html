@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Medical AI Whiteboard — Heart Anatomy & Physiology</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#e8e4dc;font-family:Arial,sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center}
+.app{width:min(1320px,97vw);height:min(850px,96vh);background:#fffdf8;border:1px solid #d5cec1;border-radius:20px;box-shadow:0 18px 55px #0002;display:grid;grid-template-columns:1fr 350px;overflow:hidden}
+.board{background:#fffefb;position:relative}
+svg{width:100%;height:100%}
+.draw{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
+.outline{stroke:#7f2735;stroke-width:6}
+.septum{stroke:#7f2735;stroke-width:4}
+.vesselBlue{stroke:#2b72b8;stroke-width:9}
+.vesselRed{stroke:#c93d32;stroke-width:9}
+.chamberR{fill:#e1f0fc;stroke:#2b72b8;stroke-width:3;opacity:0}
+.chamberL{fill:#fde3df;stroke:#c93d32;stroke-width:3;opacity:0}
+.valve{fill:#e9c766;stroke:#8d6a19;stroke-width:3;opacity:0}
+.label{font-size:18px;font-weight:700;fill:#292929;opacity:0}
+.small{font-size:15px;font-weight:600;fill:#555;opacity:0}
+.title{font-size:28px;font-weight:700;fill:#222;opacity:0}
+.phase{font-size:18px;font-weight:800;fill:#222;opacity:0}
+.arrow{fill:none;stroke:#444;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
+.flowB{fill:#1769d2;opacity:0}.flowR{fill:#d43b30;opacity:0}
+.coronary{stroke:#a82b35;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
+.pulse{fill:none;stroke:#b32732;stroke-width:4;opacity:0}
+.appear{animation:appear .45s ease forwards}
+@keyframes appear{to{opacity:1}}
+.side{background:#f3efe7;border-left:1px solid #d9d1c5;padding:21px;display:flex;flex-direction:column}
+.badge{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.55}
+h2{margin:6px 0 12px;font-size:22px}
+.topic{font-size:12px;opacity:.6;margin-bottom:10px}
+.chat{flex:1;overflow:auto;padding-right:3px}
+.msg{padding:11px 13px;border-radius:13px;margin:8px 0;line-height:1.42;font-size:14px;opacity:.18;transform:translateY(7px);transition:.35s}
+.msg.active{opacity:1;transform:none}
+.msg.ai{background:#fff;border:1px solid #ddd5c8}
+.msg.system{background:#e7dfd2;font-weight:700}
+.controls{display:flex;gap:8px;margin-top:12px}
+button{border:0;border-radius:10px;padding:11px;font-weight:700;font-size:14px;cursor:pointer;background:#222;color:#fff;flex:1}
+button.secondary{background:#ddd5c8;color:#222}
+.progress{height:5px;background:#d9d1c5;border-radius:9px;margin-top:11px;overflow:hidden}
+.bar{height:100%;width:0;background:#222;transition:width .4s}
+.status{font-size:11px;opacity:.55;margin-top:7px;text-align:center}
+.legend{position:absolute;left:22px;bottom:18px;font-size:11px;opacity:.45}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="board">
+<svg viewBox="0 0 970 850">
+<text id="title" class="title" x="35" y="42">Human Heart — Anatomy & Blood Flow</text>
+<text id="orientation" class="small" x="35" y="68">Anterior view • patient's right is on the viewer's left</text>
+
+<!-- Great vessels -->
+<path id="svc" class="draw vesselBlue" d="M300 85 L300 235"/>
+<path id="ivc" class="draw vesselBlue" d="M300 650 L300 505"/>
+<path id="pa" class="draw vesselBlue" d="M365 230 C345 165 285 120 210 105"/>
+<path id="pv" class="draw vesselRed" d="M610 230 C650 160 720 125 795 110"/>
+<path id="aorta" class="draw vesselRed" d="M555 235 C545 150 600 95 675 105 C760 118 770 205 735 275"/>
+<path id="aortaDown" class="draw vesselRed" d="M735 275 C720 360 700 465 680 620"/>
+
+<!-- Pericardial-ish outer silhouette -->
+<path id="heartOutline" class="draw outline" d="M455 190 C395 125 300 145 275 225 C235 355 315 520 485 690 C650 525 730 360 685 225 C655 145 560 125 500 190"/>
+
+<!-- Chambers -->
+<path id="ra" class="chamberR" d="M300 250 C325 205 390 200 430 245 L440 365 C390 390 325 365 290 315 Z"/>
+<path id="rv" class="chamberR" d="M290 350 C340 340 395 365 440 395 L450 565 C380 530 320 470 290 350 Z"/>
+<path id="la" class="chamberL" d="M505 245 C545 200 610 205 635 250 L645 315 C610 365 545 390 495 365 Z"/>
+<path id="lv" class="chamberL" d="M495 395 C540 365 595 340 645 350 C615 470 555 530 485 565 Z"/>
+
+<!-- Septum -->
+<path id="septum" class="draw septum" d="M470 195 C465 300 470 450 485 690"/>
+
+<!-- Valves: tricuspid, pulmonary, mitral, aortic -->
+<path id="tri" class="valve" d="M405 350 Q430 332 452 355 Q430 377 405 350"/>
+<path id="pulv" class="valve" d="M350 220 Q370 198 390 220 Q370 240 350 220"/>
+<path id="mitral" class="valve" d="M475 350 Q500 332 525 350 Q500 377 475 350"/>
+<path id="aov" class="valve" d="M530 220 Q550 198 570 220 Q550 240 530 220"/>
+
+<!-- Coronary arteries schematic on surface -->
+<path id="cor1" class="coronary" d="M480 300 C440 275 395 280 360 310 C345 325 330 350 315 380"/>
+<path id="cor2" class="coronary" d="M480 300 C520 275 565 280 600 310 C620 330 635 360 650 395"/>
+<path id="cor3" class="coronary" d="M480 300 C470 350 470 405 485 465"/>
+<path id="cor4" class="coronary" d="M360 310 C380 330 400 345 425 355"/>
+<path id="cor5" class="coronary" d="M600 310 C580 330 560 345 535 355"/>
+
+<!-- labels -->
+<text id="svcL" class="label" x="210" y="92">Superior vena cava</text>
+<text id="ivcL" class="label" x="180" y="665">Inferior vena cava</text>
+<text id="paL" class="label" x="105" y="92">Pulmonary artery → lungs</text>
+<text id="pvL" class="label" x="720" y="92">Pulmonary veins ← lungs</text>
+<text id="aoL" class="label" x="770" y="250">Aorta</text>
+
+<text id="raL" class="label" x="315" y="285">Right atrium</text>
+<text id="rvL" class="label" x="320" y="455">Right ventricle</text>
+<text id="laL" class="label" x="535" y="285">Left atrium</text>
+<text id="lvL" class="label" x="530" y="455">Left ventricle</text>
+<text id="sepL" class="label" x="385" y="605">Interventricular septum</text>
+<text id="triL" class="small" x="360" y="335">Tricuspid</text>
+<text id="mitL" class="small" x="520" y="335">Mitral</text>
+<text id="corL" class="label" x="260" y="390">Coronary arteries</text>
+
+<!-- Blood flow markers -->
+<circle id="f1" class="flowB" cx="300" cy="230" r="8"/>
+<circle id="f2" class="flowB" cx="340" cy="430" r="8"/>
+<circle id="f3" class="flowB" cx="250" cy="120" r="8"/>
+<circle id="f4" class="flowR" cx="760" cy="120" r="8"/>
+<circle id="f5" class="flowR" cx="550" cy="430" r="8"/>
+<circle id="f6" class="flowR" cx="720" cy="330" r="8"/>
+
+<!-- Cardiac cycle panel -->
+<text id="cycleTitle" class="phase" x="75" y="735">Cardiac cycle</text>
+<text id="cycle" class="small" x="75" y="760">Diastole → ventricular systole → ejection → relaxation</text>
+<path id="pulse" class="pulse" d="M600 755 L620 755 L628 735 L638 775 L648 750 L655 755 L700 755"/>
+
+<text id="summary" class="label" x="210" y="810">Body → right heart → lungs → left heart → body</text>
+</svg>
+<div class="legend">Educational visualization — anatomy is simplified for teaching, not a clinical atlas.</div>
+</section>
+
+<aside class="side">
+<div class="badge">Medical AI Whiteboard Teacher</div>
+<h2>Heart: Detailed Lesson</h2>
+<div class="topic">Anatomy → valves → circulation → coronary supply → cardiac cycle</div>
+<div class="chat">
+<div id="m1" class="msg ai">Let's first orient the heart. In an anterior view, the patient's right side appears on our left. The heart has four chambers and a muscular septum separating the right and left sides.</div>
+<div id="m2" class="msg ai">The superior and inferior venae cavae return deoxygenated blood from the systemic circulation to the right atrium.</div>
+<div id="m3" class="msg ai">During ventricular filling, blood passes from the right atrium through the tricuspid valve into the right ventricle.</div>
+<div id="m4" class="msg ai">Right ventricular systole ejects blood through the pulmonary valve into the pulmonary trunk and pulmonary arteries, carrying it toward the lungs.</div>
+<div id="m5" class="msg ai">After gas exchange in the lungs, oxygenated blood returns through the pulmonary veins to the left atrium.</div>
+<div id="m6" class="msg ai">Blood then crosses the mitral valve into the left ventricle. The mitral and tricuspid valves are atrioventricular valves.</div>
+<div id="m7" class="msg ai">During left ventricular systole, the aortic valve opens and blood is ejected into the aorta for systemic circulation. The aortic and pulmonary valves are semilunar valves.</div>
+<div id="m8" class="msg ai">The coronary arteries arise from the aortic root and supply the myocardium. The heart therefore has its own arterial blood supply.</div>
+<div id="m9" class="msg ai">Now connect this to the cardiac cycle: ventricular filling occurs mainly during diastole, followed by ventricular contraction and ejection during systole.</div>
+<div id="m10" class="msg system">Complete pathway: SVC/IVC → RA → tricuspid → RV → pulmonary valve → pulmonary arteries → lungs → pulmonary veins → LA → mitral → LV → aortic valve → aorta → body.</div>
+</div>
+<div class="controls">
+<button onclick="startLesson()">▶ Teach</button>
+<button class="secondary" onclick="toggleVoice()" id="voiceBtn">🔊 Voice: On</button>
+<button class="secondary" onclick="resetLesson()">↺</button>
+</div>
+<div style="margin-top:10px;font-size:12px;display:flex;align-items:center;gap:8px">
+<label for="voiceSpeed">Voice speed</label>
+<input id="voiceSpeed" type="range" min="0.7" max="1.5" step="0.1" value="1" style="flex:1;min-width:0">
+<span id="voiceSpeedValue">1.0×</span>
+</div>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div id="status" class="status">Ready</div>
+</aside>
+</div>
+
+<script>
+const paths=["svc","ivc","pa","pv","aorta","aortaDown","heartOutline","septum","cor1","cor2","cor3","cor4","cor5"];
+paths.forEach(id=>{
+ const e=document.getElementById(id);
+ const len=e.getTotalLength();
+ e.style.setProperty("--len",len);
+ e.style.strokeDasharray=len;
+ e.style.strokeDashoffset=len;
+});
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function appear(id){document.getElementById(id).classList.add("appear")}
+function active(id){
+ document.querySelectorAll(".msg").forEach(e=>e.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+}
+function status(s,n){document.getElementById("status").textContent=s;document.getElementById("bar").style.width=n+"%"}
+function draw(id,ms){
+ return new Promise(resolve=>{
+  const e=document.getElementById(id);
+  e.style.transition=`stroke-dashoffset ${ms}ms cubic-bezier(.2,.75,.2,1)`;
+  requestAnimationFrame(()=>e.style.strokeDashoffset="0");
+  setTimeout(resolve,ms+100);
+ });
+}
+function resetLesson(){
+ document.querySelectorAll(".msg").forEach(e=>e.classList.remove("active"));
+ document.querySelectorAll(".appear").forEach(e=>e.classList.remove("appear"));
+ paths.forEach(id=>{
+  const e=document.getElementById(id);
+  e.style.transition="none";e.style.strokeDashoffset=e.getTotalLength();
+ });
+ ["ra","rv","la","lv","tri","pulv","mitral","aov","f1","f2","f3","f4","f5","f6"].forEach(id=>document.getElementById(id).style.opacity=0);
+ status("Ready",0);
+}
+async function startLesson(){
+ resetLesson();await sleep(500);
+
+ status("Orienting the anatomy…",7);
+ active("m1");appear("title");appear("orientation");
+ await draw("heartOutline",1600);await draw("septum",800);
+ appear("ra");appear("rv");appear("la");appear("lv");
+ appear("raL");appear("rvL");appear("laL");appear("lvL");appear("sepL");
+ await sleep(2600);
+
+ status("Systemic venous return…",17);
+ active("m2");appear("svcL");appear("ivcL");
+ await draw("svc",900);await draw("ivc",900);appear("f1");
+ await sleep(2100);
+
+ status("Right heart filling…",28);
+ active("m3");appear("tri");appear("triL");
+ await sleep(800);appear("f2");await sleep(2200);
+
+ status("Pulmonary circulation…",39);
+ active("m4");appear("pulv");await draw("pa",1200);appear("paL");appear("f3");
+ await sleep(2500);
+
+ status("Pulmonary venous return…",50);
+ active("m5");await draw("pv",1200);appear("pvL");appear("f4");
+ await sleep(2400);
+
+ status("Left ventricular filling…",61);
+ active("m6");appear("mitral");appear("mitL");appear("f5");
+ await sleep(2400);
+
+ status("Systemic ejection…",72);
+ active("m7");appear("aov");await draw("aorta",1200);await draw("aortaDown",900);appear("aoL");appear("f6");
+ await sleep(2600);
+
+ status("Coronary circulation…",84);
+ active("m8");
+ await Promise.all([draw("cor1",900),draw("cor2",900),draw("cor3",1000),draw("cor4",700),draw("cor5",700)]);
+ appear("corL");
+ await sleep(2400);
+
+ status("Cardiac cycle…",92);
+ active("m9");appear("cycleTitle");appear("cycle");appear("pulse");
+ await sleep(3000);
+
+ status("Final pathway",100);
+ active("m10");appear("summary");
+ await sleep(4000);
+ status("Lesson complete — ready for questions",100);
+}
+startLesson();
+</script>
+</body>
+</html>

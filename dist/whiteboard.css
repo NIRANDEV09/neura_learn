@@ -1,0 +1,439 @@
+/* NeuraLearn Real-Time Animated AI Whiteboard Tutor Styles */
+
+.whiteboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 18px;
+  max-width: 1560px;
+  margin: 0 auto;
+  min-height: calc(100vh - 120px);
+}
+
+.whiteboard-board-card {
+  position: relative;
+  background: #fffdf8;
+  border: 1px solid #d5cec1;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.whiteboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e8e4dc;
+  background: #faf7f0;
+}
+
+.whiteboard-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1c20;
+}
+
+.whiteboard-header small {
+  color: #6c737f;
+  font-size: 12px;
+}
+
+.whiteboard-canvas-area {
+  position: relative;
+  flex: 1;
+  background: #fffefb;
+  min-height: 480px;
+  height: min(72vh, 760px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#whiteboardSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.whiteboard-legend {
+  position: absolute;
+  left: 20px;
+  bottom: 14px;
+  font-size: 11px;
+  color: #8c93a0;
+  pointer-events: none;
+}
+
+/* Bottom playback controls */
+.whiteboard-footer {
+  padding: 12px 18px;
+  background: #faf8f2;
+  border-top: 1px solid #e8e4dc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wb-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wb-btn {
+  border: 1px solid #cfc7ba;
+  background: #ffffff;
+  color: #1d2127;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.wb-btn:hover:not(:disabled) {
+  background: #f0ebe1;
+  border-color: #b8af9f;
+}
+
+.wb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wb-btn.primary {
+  background: #17191d;
+  color: #ffffff;
+  border-color: #17191d;
+}
+
+.wb-btn.primary:hover:not(:disabled) {
+  background: #2b2f36;
+}
+
+.wb-btn.muted {
+  background: #fdf0ee;
+  color: #c93d32;
+  border-color: #f7d2cd;
+}
+
+.wb-progress-track {
+  height: 5px;
+  background: #e4dfd5;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+}
+
+.wb-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #2b72b8;
+  border-radius: 10px;
+  transition: width 0.35s ease;
+}
+
+.wb-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: #555b66;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* Teaching Sidebar */
+.whiteboard-sidebar {
+  background: #f5f2eb;
+  border: 1px solid #d5cec1;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+  max-height: min(88vh, 880px);
+}
+
+.wb-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2b72b8;
+  background: #eaf3fc;
+  padding: 4px 9px;
+  border-radius: 20px;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.whiteboard-sidebar h2 {
+  font-size: 20px;
+  line-height: 1.25;
+  margin: 4px 0 2px;
+  color: #17191d;
+  font-weight: 750;
+}
+
+.wb-topic-roadmap {
+  font-size: 12px;
+  color: #69707c;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+/* Chat Transcript area */
+.wb-chat-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 160px;
+}
+
+.wb-msg {
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #ded7ca;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #2b2f36;
+  opacity: 0.4;
+  transform: translateY(4px);
+  transition: all 0.28s ease;
+  cursor: pointer;
+}
+
+.wb-msg:hover {
+  opacity: 0.75;
+}
+
+.wb-msg.active {
+  opacity: 1;
+  transform: none;
+  border-left: 4px solid #2b72b8;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+}
+
+.wb-msg-head {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2b72b8;
+  margin-bottom: 4px;
+}
+
+.wb-msg p {
+  margin: 0;
+}
+
+/* Voice speed row */
+.wb-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #555c68;
+}
+
+.wb-speed-row input[type="range"] {
+  flex: 1;
+  accent-color: #2b72b8;
+  cursor: pointer;
+}
+
+.wb-speed-val {
+  font-weight: 700;
+  min-width: 34px;
+}
+
+/* Interruption form */
+.wb-interrupt-box {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.wb-interrupt-input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  background: #ffffff;
+  border: 1px solid #cfc7ba;
+  border-radius: 9px;
+  padding: 0 11px;
+  font-size: 13px;
+  color: #17191d;
+  outline: none;
+}
+
+.wb-interrupt-input:focus {
+  border-color: #2b72b8;
+}
+
+.wb-mic-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: 1px solid #cfc7ba;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.wb-status-bar {
+  font-size: 12px;
+  color: #636b78;
+  background: #eae5dc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-height: 20px;
+}
+
+/* Quiz Card */
+.wb-quiz-card {
+  border-top: 1px solid #ded7ca;
+  padding-top: 12px;
+}
+
+.wb-quiz-card h3 {
+  font-size: 13px;
+  margin: 0 0 8px;
+  color: #17191d;
+}
+
+.wb-quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quiz-opt-btn {
+  text-align: left;
+  padding: 8px 11px;
+  background: #ffffff;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quiz-opt-btn:hover {
+  border-color: #2b72b8;
+  background: #f4f8fd;
+}
+
+.quiz-opt-btn.correct {
+  border-color: #2ea44f;
+  background: #eafaf0;
+  color: #1e7035;
+  font-weight: 700;
+}
+
+.quiz-opt-btn.incorrect {
+  border-color: #c93d32;
+  background: #fdf0ee;
+  color: #9c271e;
+}
+
+.quiz-feedback {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 9px;
+  border-radius: 6px;
+}
+
+.quiz-feedback.correct {
+  background: #eafaf0;
+  color: #1e7035;
+}
+
+.quiz-feedback.incorrect {
+  background: #fdf0ee;
+  color: #9c271e;
+}
+
+/* SVG Animations */
+@keyframes wbFlowPulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.35); opacity: 1; }
+}
+
+.flow-marker {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wbFlowPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes wbHighlightPulse {
+  0% { filter: drop-shadow(0 0 0 rgba(43, 114, 184, 0)); }
+  50% { filter: drop-shadow(0 0 14px rgba(43, 114, 184, 0.85)); }
+  100% { filter: drop-shadow(0 0 0 rgba(43, 114, 184, 0)); }
+}
+
+.wb-highlighted {
+  animation: wbHighlightPulse 1.5s ease;
+}
+
+/* Rough.js Hand-Drawn Whiteboard Sketch Styling */
+#wbSketchBtn.active {
+  background: #111317;
+  color: #c6f36a;
+  border-color: #111317;
+}
+
+.wb-sketch-canvas {
+  background-image: 
+    radial-gradient(#e5dec9 0.75px, transparent 0.75px),
+    radial-gradient(#f0eae1 0.75px, #fffdfa 0.75px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+.wb-sketch-elem {
+  filter: drop-shadow(0 1px 1.5px rgba(20, 24, 30, 0.06));
+}
+
+.wb-sketch-elem path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#layer-text text {
+  font-family: 'Caveat', 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive, sans-serif !important;
+  user-select: none;
+}
+
+@media (max-width: 1020px) {
+  .whiteboard-layout {
+    grid-template-columns: 1fr;
+  }
+  .whiteboard-sidebar {
+    max-height: none;
+  }
+  .whiteboard-canvas-area {
+    min-height: 380px;
+    height: 52vh;
+  }
+}
