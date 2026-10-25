@@ -28,8 +28,25 @@ function send(res, status, data, type='application/json; charset=utf-8') {
   res.writeHead(status, {'Content-Type': type, 'Cache-Control':'no-store', 'Access-Control-Allow-Origin':'*'});
   res.end(type.startsWith('application/json') ? JSON.stringify(data) : data);
 }
-function readBody(req) { return new Promise((resolve,reject)=>{let s=''; req.on('data',c=>{s+=c; if(s.length>1e6) req.destroy();}); req.on('end',()=>{try{resolve(JSON.parse(s||'{}'));}catch(e){reject(e);}}); req.on('error',reject);}); }
+function readBody(req) { return new Promise((resolve,reject)=>{let s=''; req.on('data',c=>{s+=c; if(s.length>4e7) req.destroy();}); req.on('end',()=>{try{resolve(JSON.parse(s||'{}'));}catch(e){reject(e);}}); req.on('error',reject);}); }
 const { matchDeterministicTopic } = require('./lib/deterministic-lessons.js');
+
+function buildGeminiUserParts(text, attachment) {
+  const parts = [];
+  if (attachment && attachment.data && attachment.mimeType) {
+    const cleanData = String(attachment.data).replace(/^data:[^;]+;base64,/, '').trim();
+    if (cleanData) {
+      parts.push({
+        inlineData: {
+          mimeType: attachment.mimeType,
+          data: cleanData
+        }
+      });
+    }
+  }
+  parts.push({ text: String(text || 'Analyze and solve this question with an animated whiteboard lesson, including textbook-grade diagrams, Free Body Diagrams (FBD), and step-by-step equations.') });
+  return parts;
+}
 
 const lessonSchema = `Return ONLY valid JSON with this shape:
 {
@@ -54,6 +71,7 @@ const lessonSchema = `Return ONLY valid JSON with this shape:
           "stroke": "#hex", "strokeWidth": 1-8,
           "fill": "none|#hex", "opacity": 0.0-1.0,
           "text": "concise label, equation or value",
+          "label": "arrow label or force badge (e.g. N = 20 N, T = 13.3 N)",
           "fontSize": 12-28, "fontWeight": "normal|bold|600|700",
           "anchor": "start|middle|end", "color": "#hex",
           "duration": 400-2000, "delay": 0-1500,
@@ -69,27 +87,36 @@ const lessonSchema = `Return ONLY valid JSON with this shape:
     "explanation": "Brief explanation of the correct choice."
   }
 }
-Choose the number of segments dynamically based on topic complexity (typically 4-10 segments). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements. The whiteboard persists between segments: subsequent segments add new elements or transform established ones; do not redraw the entire board every segment. Use visible, rich colors: deep slate (#22262b), bright blue (#2b72b8), crimson red (#c93d32), forest green (#2ea44f), warm amber (#e3a83e), purple (#8252a1). Never use white or light yellow strokes on the white board. For paths, provide smooth SVG bezier curves (C, Q, L) that can be drawn with stroke-reveal animations. For processes, use flow markers moving between stages. Output pure JSON without markdown fences.`;
+Choose the number of segments dynamically based on topic complexity (typically 4-10 segments). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements. The whiteboard persists between segments: subsequent segments add new elements or transform established ones; do not redraw the entire board every segment. Use visible, rich colors: deep slate (#22262b), bright blue (#2b72b8), crimson red (#c93d32), forest green (#2ea44f), warm amber (#e3a83e), purple (#8252a1). Never use white or light yellow strokes on the white board. For paths, provide smooth SVG bezier curves (C, Q, L) that can be drawn with stroke-reveal animations. For processes, use flow markers moving between stages. Output pure JSON without markdown fences.
+
+PHYSICS & FREE BODY DIAGRAM (FBD) RULES:
+When teaching mechanics, pulleys, connected blocks, or inclined planes (e.g. JEE/NEET physics or uploaded question images/PDFs):
+1. PHYSICAL SETUP: Draw the table surface or incline first with ground hatching marks. Draw pulleys as circles with center axle pins. Draw strings taut between bodies.
+2. BLOCKS: Render blocks as clean rectangles with mass labels inside (e.g. 'm₁ = 2 kg', 'm₂ = 4 kg').
+3. FORCES & FBD: Always anchor force vectors directly to the block edges/center.
+   - Gravity: downward arrow labeled 'm·g'
+   - Normal force: upward arrow labeled 'N'
+   - Tension: arrow along the string labeled 'T'
+   - Friction: arrow opposing motion labeled 'f = μ·N'
+   - NEVER emit detached or unlabeled arrows. Give every arrow a descriptive label (e.g. label: "N₁ = 20 N", label: "T").
+4. RESOLVED COMPONENTS: On inclined planes, resolve gravity into dashed perpendicular component (mg·cos θ) and parallel component (mg·sin θ).
+5. EQUATIONS: Use 'draw_formula' or clean formula cards for Newton's 2nd law (ΣF = m·a). Show step-by-step substitution and solve for unknowns (a, T) with units.`;
 
 function parseModelJson(text){const clean=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();try{return JSON.parse(clean)}catch{}const start=clean.indexOf('{');if(start<0)throw new Error('no JSON object');let depth=0,inString=false,escaped=false;for(let i=start;i<clean.length;i++){const c=clean[i];if(inString){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')inString=false;continue}if(c==='"'){inString=true;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0){return JSON.parse(clean.slice(start,i+1))}}throw new Error('incomplete JSON object')}
 async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, options={}) {
   if (!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'), {status:503});
   const generationConfig={maxOutputTokens, responseMimeType:'application/json', thinkingConfig:{thinkingLevel:options.thinkingLevel||'low'}};
-  // Keep the preferred model first, then use stable Flash fallbacks if it is
-  // quota-limited or temporarily busy. Lite is only reached when both full
-  // Flash models cannot serve the request.
+  const userParts = buildGeminiUserParts(user, options.attachment);
   const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])];
   let response,raw,usedModel=MODEL;
   for(const model of models){
     const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(API_KEY)}`;
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),options.timeoutMs||45000);
-    try { response=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig})}); raw=await response.text(); }
+    try { response=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:userParts}],generationConfig})}); raw=await response.text(); }
     catch(e) { if(e.name==='AbortError') throw Object.assign(new Error(`Gemini request timed out after ${Math.round((options.timeoutMs||45000)/1000)} seconds. Check model access, API quota, and network.`),{status:504}); throw e; }
     finally { clearTimeout(timeout); }
     if(response.ok){usedModel=model;break}
-    // A model-specific free-tier limit on the primary can still leave quota on
-    // the fallback model. Try that model for both temporary overload and 429.
     if(response.status!==503 && response.status!==429)throw Object.assign(new Error(`Gemini API ${response.status}: ${raw.slice(0,500)}`),{status:response.status});
   }
   if(!response?.ok){
@@ -103,14 +130,15 @@ async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, o
 }
 async function streamGeminiResponse(system,user,res,options={}) {
   if(!API_KEY) throw Object.assign(new Error('GEMINI_API_KEY is missing. Add it to your environment or .env setup.'),{status:503});
-  const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])],controller=new AbortController(),timeoutMs=options.timeoutMs||22000;
+  const userParts = buildGeminiUserParts(user, options.attachment);
+  const models=[...new Set([MODEL,'gemini-3.5-flash','gemini-3.8-flash'])],controller=new AbortController(),timeoutMs=options.timeoutMs||25000;
   const timeout=setTimeout(()=>controller.abort(),timeoutMs),started=Date.now();let upstream=null,usedModel=MODEL,lastError='';
   const onClose=()=>{if(!res.writableEnded)controller.abort()};res.on('close',onClose);
   const emit=event=>res.write(JSON.stringify(event)+'\n');
   try {
     for(const model of models){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
-      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1000,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
+      try{upstream=await fetch(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:userParts}],generationConfig:{temperature:0.1,maxOutputTokens:options.maxOutputTokens||1200,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'low'}}})})}catch(e){if(e.name==='AbortError')throw Object.assign(new Error(`Gemini first-scene request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});throw e;}
       if(upstream.ok){usedModel=model;break;}lastError=await upstream.text();if(upstream.status!==429&&upstream.status!==503)throw Object.assign(new Error(`Gemini API ${upstream.status}: ${lastError.slice(0,500)}`),{status:upstream.status});upstream=null;
     }
     if(!upstream)throw Object.assign(new Error(`Gemini models are busy or unavailable (${lastError.slice(0,300)})`),{status:503});
@@ -123,12 +151,25 @@ async function streamGeminiResponse(system,user,res,options={}) {
   }catch(e){if(res.headersSent){try{emit({type:'error',error:e.message||'Gemini stream failed.'});res.end();}catch{}}else throw e;}finally{clearTimeout(timeout);res.off('close',onClose);}
 }
 async function askGroq(system, user, temperature=0.25, maxOutputTokens=4096, options={}) {
+  if (options.attachment && options.attachment.mimeType === 'application/pdf' && API_KEY) {
+    return askGemini(system, user, temperature, maxOutputTokens, options);
+  }
   if (!GROQ_API_KEY) throw Object.assign(new Error('GROQ_API_KEY is missing. Add it to .env and restart the server.'), {status:503});
   const started=Date.now(), timeoutMs=options.timeoutMs||45000, controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   let response,raw;
+
+  let userContent = user;
+  if (options.attachment && options.attachment.data && options.attachment.mimeType?.startsWith('image/')) {
+    const cleanData = String(options.attachment.data).replace(/^data:[^;]+;base64,/, '').trim();
+    userContent = [
+      { type: 'text', text: user },
+      { type: 'image_url', image_url: { url: `data:${options.attachment.mimeType};base64,${cleanData}` } }
+    ];
+  }
+
   try {
-    response=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal:controller.signal,headers:{'Authorization':`Bearer ${GROQ_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'system',content:system},{role:'user',content:user}],temperature,max_completion_tokens:maxOutputTokens,response_format:{type:'json_object'},reasoning_effort:options.reasoningEffort||'medium'})});
+    response=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal:controller.signal,headers:{'Authorization':`Bearer ${GROQ_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'system',content:system},{role:'user',content:userContent}],temperature,max_completion_tokens:maxOutputTokens,response_format:{type:'json_object'},reasoning_effort:options.reasoningEffort||'medium'})});
     raw=await response.text();
   } catch(e) {
     if(e.name==='AbortError') throw Object.assign(new Error(`Groq request timed out after ${Math.round(timeoutMs/1000)} seconds.`),{status:504});
@@ -212,7 +253,7 @@ async function route(req,res) {
       const level=String(b.level||'university beginner').slice(0,100),language=String(b.language||'English').slice(0,60),preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
       const system=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
       const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      return await streamGeminiResponse(system,prompt,res,{timeoutMs:22000,maxOutputTokens:1000});
+      return await streamGeminiResponse(system,prompt,res,{timeoutMs:25000,maxOutputTokens:1200,attachment:b.attachment});
     }catch(e){return send(res,e.status||500,{error:e.message||'First-scene stream failed.'});}
   }
   if (req.method==='POST' && url.pathname==='/api/lesson/first') {
@@ -226,7 +267,7 @@ async function route(req,res) {
       const level=String(b.level||'university beginner').slice(0,100), language=String(b.language||'English').slice(0,60), preferences=String(b.preferences||'Use an intuitive visual explanation.').slice(0,500);
       const fastSystem=`You are NeuraLearn's ultra-fast first-frame whiteboard teacher. Return ONLY valid JSON: {"title":"...","overview":"...","topic":"...","viewBox":"0 0 960 700","segments":[{"heading":"Opening intuition","narration":"one concise opening sentence under 25 words","duration":2500,"actions":[{"op":"draw_path|draw_rect|draw_circle|draw_arrow|draw_text","id":"elem1","d":"...","x":100-800,"y":100-600,"text":"...","stroke":"#2b72b8","strokeWidth":3,"fill":"none","color":"#22262b","delay":200}]}]}. Produce EXACTLY ONE useful opening segment with 2-4 meaningful visual actions. Start with the core concept intuition, not a blank screen. Coordinates fit a 960x700 viewBox. Visible colors only (never white strokes). Pure JSON only.`;
       const prompt=`Concept/request: ${concept}\nLevel: ${level}\nLanguage: ${language}\nPreferences: ${preferences}\nCreate the first drawable teaching moment now.`;
-      const first=await askLLM(fastSystem,prompt,0.1,1000,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:15000});
+      const first=await askLLM(fastSystem,prompt,0.1,1200,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:18000,attachment:b.attachment});
       if(!Array.isArray(first.segments)||!first.segments.length) throw Object.assign(new Error('Could not create the first teaching scene.'),{status:502});
       return send(res,200,{...first,segments:first.segments.slice(0,1),provider:first._provider||LLM_PROVIDER,model:first._model||ACTIVE_MODEL,latencyMs:first._latencyMs,partial:true});
     } catch(e){return send(res,e.status||500,{error:e.message||'First scene generation failed.'});}
@@ -242,7 +283,7 @@ async function route(req,res) {
       const opening=String(b.firstNarration||'').slice(0,500);
       const prompt=`Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively with animated whiteboard drawings.').slice(0,1000)}\n${opening?`The first scene already being taught is: ${opening}`:'The opening scene is already being taught.'}\nActions already on the board: ${JSON.stringify(Array.isArray(b.firstActions)?b.firstActions:b.firstVisuals||[]).slice(0,2500)}\nGenerate ONLY the remaining connected lesson segments, not a duplicate opening. Build a progressive whiteboard composition in viewBox 0 0 960 700. Add new elements to vacant space or highlight existing ones. Return JSON with {"segments":[...],"checkpoint":{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}}. Use 4-8 remaining segments. Give each segment 3-6 purposeful actions. JSON only.`;
       const system=`You are NeuraLearn, a precise visual professor creating an animated SVG whiteboard lesson. ${lessonSchema}`;
-      const rest=await askLLM(system,prompt,0.2,8192,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:60000});
+      const rest=await askLLM(system,prompt,0.2,8192,{thinkingLevel:'low',reasoningEffort:'low',timeoutMs:60000,attachment:b.attachment});
       if(!Array.isArray(rest.segments)) throw Object.assign(new Error('The remaining lesson had no usable segments.'),{status:502});
       return send(res,200,{segments:rest.segments,checkpoint:rest.checkpoint||null,provider:rest._provider||LLM_PROVIDER,model:rest._model||ACTIVE_MODEL,latencyMs:rest._latencyMs,partial:false});
     } catch(e){return send(res,e.status||500,{error:e.message||'Remaining lesson generation failed.'});}
@@ -256,7 +297,7 @@ async function route(req,res) {
         return send(res,200,{...deterministic,provider:'deterministic',model:'tracers',latencyMs:15});
       }
       const prompt = `Learner request: ${concept}\nLevel: ${String(b.level||'university beginner').slice(0,100)}\nLanguage: ${String(b.language||'English').slice(0,60)}\nPreferences: ${String(b.preferences||'Teach intuitively, with concrete examples and animated whiteboard SVG drawings.').slice(0,1000)}\nGenerate the lesson now.`;
-      const lesson=await askLLM(lessonRules,prompt,0.25,8192,{thinkingLevel:'low',reasoningEffort:'low'}); if(!Array.isArray(lesson.segments)||!lesson.segments.length) throw Object.assign(new Error('Lesson had no usable segments.'),{status:502});
+      const lesson=await askLLM(lessonRules,prompt,0.25,8192,{thinkingLevel:'low',reasoningEffort:'low',attachment:b.attachment}); if(!Array.isArray(lesson.segments)||!lesson.segments.length) throw Object.assign(new Error('Lesson had no usable segments.'),{status:502});
       return send(res,200,{...lesson,provider:lesson._provider||LLM_PROVIDER,model:lesson._model||ACTIVE_MODEL,latencyMs:lesson._latencyMs});
     } catch(e){ return send(res,e.status||500,{error:e.message||'Lesson generation failed.'}); }
   }
