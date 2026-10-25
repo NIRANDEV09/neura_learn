@@ -637,9 +637,23 @@ class WhiteboardRenderer {
       this.elements.set(id, el);
     }
 
-    const x = this.normalizeX(action.x);
-    const y = this.normalizeY(action.y);
+    let x = this.normalizeX(action.x);
+    let y = this.normalizeY(action.y);
     const textStr = String(action.text || action.label || '');
+
+    // Anti-collision: if another distinct text element already occupies this exact position, shift y down
+    if (textStr && textStr.length > 2 && this.gText) {
+      const existingTexts = Array.from(this.gText.querySelectorAll('text'));
+      for (const other of existingTexts) {
+        if (other === el || other.getAttribute('id') === id) continue;
+        const ox = Number(other.getAttribute('x'));
+        const oy = Number(other.getAttribute('y'));
+        const otherStr = other.textContent || '';
+        if (Math.abs(y - oy) < 22 && Math.abs(x - ox) < Math.max(80, otherStr.length * 8)) {
+          y = oy + 32;
+        }
+      }
+    }
 
     // Mathematical formula and code detection for academic font rendering
     const isFormula = action.op === 'draw_formula' || action.isFormula || 
@@ -695,41 +709,67 @@ class WhiteboardRenderer {
 
   renderFlowMarker(id, action, animated) {
     let el = this.elements.get(id);
-    if (!el) {
-      el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      el.setAttribute('id', id);
-      el.classList.add('flow-marker');
-      this.gFlow.appendChild(el);
+    if (!el || el.tagName.toLowerCase() !== 'circle') {
+      const newEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      newEl.setAttribute('id', id);
+      newEl.classList.add('flow-marker');
+      if (el) el.replaceWith(newEl);
+      else this.gFlow.appendChild(newEl);
+      el = newEl;
       this.elements.set(id, el);
     }
 
     const cx = this.normalizeX(action.cx || action.x);
     const cy = this.normalizeY(action.cy || action.y);
-    const r = action.r || 8;
+    const r = Number(action.r) || 8;
     const color = action.color || '#1769d2';
 
-    el.setAttribute('cx', cx);
-    el.setAttribute('cy', cy);
     el.setAttribute('r', r);
     el.setAttribute('fill', color);
     el.setAttribute('stroke', '#ffffff');
     el.setAttribute('stroke-width', '2');
     el.style.filter = 'drop-shadow(0 0 6px ' + color + ')';
 
-    if (animated) {
+    const hasTransit = action.fromX !== undefined && action.fromY !== undefined;
+
+    if (hasTransit && animated) {
+      const fromX = this.normalizeX(action.fromX);
+      const fromY = this.normalizeY(action.fromY);
+      el.setAttribute('cx', fromX);
+      el.setAttribute('cy', fromY);
       el.style.opacity = '0';
-      el.style.transform = 'scale(0.3)';
+      el.style.transform = 'scale(0.8)';
+      el.style.transformOrigin = `${fromX}px ${fromY}px`;
+      el.style.transition = 'none';
+
+      const transitDur = Number(action.duration) || 900;
+      const timer = setTimeout(() => {
+        el.style.transition = `opacity 250ms ease, cx ${transitDur}ms cubic-bezier(.2,.8,.2,1), cy ${transitDur}ms cubic-bezier(.2,.8,.2,1), transform 250ms ease`;
+        el.style.opacity = '1';
+        el.style.transform = 'scale(1)';
+        el.setAttribute('cx', cx);
+        el.setAttribute('cy', cy);
+      }, Number(action.delay) || 0);
+      this.activeAnimations.push(timer);
+    } else if (animated) {
+      el.setAttribute('cx', cx);
+      el.setAttribute('cy', cy);
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0.5)';
       el.style.transformOrigin = `${cx}px ${cy}px`;
-      el.style.transition = 'all 500ms cubic-bezier(.17,.89,.32,1.28)';
+      el.style.transition = 'opacity 350ms ease, transform 350ms cubic-bezier(.16, 1, .3, 1)';
 
       const timer = setTimeout(() => {
         el.style.opacity = '1';
         el.style.transform = 'scale(1)';
-      }, action.delay || 0);
+      }, Number(action.delay) || 0);
       this.activeAnimations.push(timer);
     } else {
+      el.setAttribute('cx', cx);
+      el.setAttribute('cy', cy);
       el.style.opacity = '1';
       el.style.transform = 'scale(1)';
+      el.style.transition = 'none';
     }
   }
 

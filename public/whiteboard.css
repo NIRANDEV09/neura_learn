@@ -375,16 +375,17 @@
 }
 
 /* SVG Animations */
-@keyframes wbFlowPulse {
-  0%, 100% { transform: scale(1); opacity: 0.95; }
-  50% { transform: scale(1.35); opacity: 1; }
+@keyframes wbFlowAppear {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .flow-marker {
   transform-box: fill-box;
   transform-origin: center;
-  animation: wbFlowPulse 1.8s infinite ease-in-out;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 
 @keyframes wbHighlightPulse {
   0% { filter: drop-shadow(0 0 0 rgba(43, 114, 184, 0)); }
