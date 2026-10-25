@@ -90,17 +90,12 @@ const lessonSchema = `Return ONLY valid JSON with this shape:
 }
 Choose the number of segments dynamically based on topic complexity (typically 4-7 slides). Accuracy is mandatory: verify equations, units, arithmetic, signs, and causal statements.
 
-ACCURACY & ZERO-ERROR MANDATE:
-1. PHYSICAL ACCURACY:
-   - Weight (W = m·g) MUST act downwards toward Earth.
-   - Normal force (N) MUST act perpendicular away from the contact surface (e.g. N = m·g·cosθ on an incline).
-   - Friction force (f = μ·N) MUST strictly oppose the direction of relative impending motion.
-   - Tension (T) in a taut rope pulls AWAY from each attached body.
-   - Newton's 2nd Law (ΣF = m·a): Always write out ΣF = m·a with explicit directional signs before solving.
-2. ARITHMETIC & NUMERICAL INTEGRITY:
-   - Rigorously calculate and double-check every arithmetic step (e.g. net force divided by total mass). Never output contradictory numbers on the same slide.
-   - For questions from uploaded images (e.g. JEE/NEET questions), solve for ALL requested variables and state which multiple-choice option (A, B, C, or D) matches.
-3. VISUAL-FIRST RATIO (MANDATORY >= 70% VISUAL ACTIONS):
+SLIDE-BASED PROGRESSION & VISUAL-FIRST MANDATE:
+1. MULTI-SLIDE PROGRESSION:
+   - Break complex or multi-body topics into distinct, clean visual slides.
+   - Use "clearBoard": true when advancing between major stages, analyzing different bodies (e.g. Slide 1: System Overview, Slide 2: FBD of Body 1, Slide 3: FBD of Body 2, Slide 4: Final Answer Card).
+   - This prevents clutter and keeps each slide fresh, spacious, and focused!
+2. VISUAL-FIRST RATIO (MANDATORY >= 70% VISUAL ACTIONS):
    - Every slide MUST be dominated by rich visual diagrams, NOT walls of text equations!
    - Draw geometric shapes with Rough.js hand-drawn styling (blocks, pulleys, cylinders, carts, inclines) with soft color fills ('#e0f2fe', '#fef0ee', '#f0fdf4', '#fef9c3').
    - Draw labeled force vector arrows ('op': 'draw_arrow') with distinct colors:
@@ -109,20 +104,27 @@ ACCURACY & ZERO-ERROR MANDATE:
      * Normal force: emerald green (#2ea44f) with badge 'N'
      * Friction: amber orange (#e3a83e) with badge 'f'
      * Acceleration / Motion: bright blue (#2b72b8) with motion arrow 'a = ...'
-4. TEXT MINIMALISM:
-   - Limit text to at most 2 concise formula lines per slide, placed on the right side (X: 520, Y: 220-380) directly adjacent to the visual diagram.
+3. TEXT MINIMALISM:
+   - NEVER create slides that are just walls of plain text formulas!
+   - Limit text to at most 2-3 concise formula lines per slide, placed on the right side (X: 520, Y: 220-380) directly adjacent to the visual diagram.
    - Let the visual diagram and arrows do the teaching, narrated by spoken voice!
 
 PHYSICS & FREE BODY DIAGRAM (FBD) RULES:
-When teaching mechanics, pulleys, connected blocks, or inclined planes:
+When teaching mechanics, pulleys, connected blocks, or inclined planes (e.g. JEE/NEET physics or uploaded question images/PDFs):
 1. PHYSICAL SETUP SLIDE (SLIDE 1):
    - Draw the full setup with pulleys, blocks (m₁, m₂, m₃), strings, incline/table surface with hatching marks, and the overall acceleration arrow (a ↑ or a ↓).
 2. ISOLATED FREE BODY DIAGRAMS (DEDICATED SLIDES WITH "clearBoard": true):
-   - For multi-body problems: Dedicate an isolated visual slide for EACH body with clearBoard: true so each body's forces are shown cleanly without clutter.
+   - For multi-body problems (e.g. 3 hanging blocks, incline + hanging block, Atwood machine):
+     DO NOT cram all equations onto one single slide!
+     Dedicate an isolated visual slide for EACH body:
+     * Slide 2 (clearBoard: true): Isolated FBD of Block 3. Draw block m₃ large in the center-left (x: 200, y: 260, w: 150, h: 110). Anchor upward tension arrow T₃, downward weight arrow m₃·g, and acceleration arrow. On the right (x: 520, y: 280), write just 1-2 lines for Newton's 2nd law solving for T₃.
+     * Slide 3 (clearBoard: true): Isolated FBD of Block 2. Draw block m₂ with upward T₂, downward T₃, downward m₂·g. On the right solve for T₂.
+     * Slide 4 (clearBoard: true): Isolated FBD of Block 1. Draw block m₁ with upward T₁, downward T₂, downward m₁·g. On the right solve for T₁.
 3. FINAL ANSWER SLIDE (clearBoard: true):
-   - Clean conclusion slide featuring a prominent green Solution Card:
+   - Clean conclusion slide showing the tension hierarchy (T₁ > T₂ > T₃) and a prominent green Solution Card:
      * Card background: op: 'draw_rect', x: 260, y: 260, width: 440, height: 95, stroke: '#2ea44f', strokeWidth: 3, fill: '#f0fdf4'
-     * Title: op: 'draw_text', text: '✓ Final Answer: ...', x: 290, y: 300, fontSize: 22, fontWeight: 'bold', color: '#1c7430'
+     * Title: op: 'draw_text', text: '✓ Final Answer: T₁ = 240 N', x: 290, y: 300, fontSize: 22, fontWeight: 'bold', color: '#1c7430'
+     * Subtitle: op: 'draw_text', text: 'Tension in rope 1 supporting all 3 masses is 240 N', x: 290, y: 335, fontSize: 16, color: '#24292f'
 4. MATH TYPOGRAPHY & NOTATION (NO CODE UNDERSCORES):
    - NEVER output raw programming snake_case underscores in formulas or labels (write 'm₁', 'm₂', 'N₁', 'f₁', 'μ', '·' instead of 'm_A', 'm_B', 'mu', '*'). JSON only, no markdown.`;
 

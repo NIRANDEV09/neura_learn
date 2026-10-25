@@ -943,9 +943,6 @@ class WhiteboardPlaybackController {
     this.quizQuestion = options.quizQuestion;
     this.quizOptions = options.quizOptions;
     this.quizFeedback = options.quizFeedback;
-    this.slideDeck = options.slideDeck || document.getElementById('wbSlideDeck');
-    this.slideDeckPrev = document.getElementById('slideDeckPrev');
-    this.slideDeckNext = document.getElementById('slideDeckNext');
 
     this.lesson = null;
     this.steps = [];
@@ -984,7 +981,6 @@ class WhiteboardPlaybackController {
     }
 
     this.renderTranscriptSidebar();
-    this.renderSlideDeck();
     this.renderer.clear();
     this.updateControls();
 
@@ -1006,7 +1002,7 @@ class WhiteboardPlaybackController {
       
       const head = document.createElement('div');
       head.className = 'wb-msg-head';
-      head.textContent = `Slide ${idx + 1}: ${(step.heading || 'Teaching Step').replace(/\*\*/g, '')}`;
+      head.textContent = `${idx + 1}. ${(step.heading || 'Teaching Step').replace(/\*\*/g, '')}`;
 
       const text = document.createElement('p');
       text.innerHTML = (step.narration || '')
@@ -1020,67 +1016,6 @@ class WhiteboardPlaybackController {
       });
       this.chatContainer.appendChild(msg);
     });
-  }
-
-  renderSlideDeck() {
-    const deck = this.slideDeck || document.getElementById('wbSlideDeck');
-    if (!deck) return;
-    deck.innerHTML = '';
-
-    if (!this.steps || !this.steps.length) {
-      const emptyChip = document.createElement('button');
-      emptyChip.type = 'button';
-      emptyChip.className = 'wb-slide-chip active';
-      emptyChip.innerHTML = '<span class="chip-num">Slide 1</span><span class="chip-title">Ready</span>';
-      deck.appendChild(emptyChip);
-      return;
-    }
-
-    this.steps.forEach((step, idx) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = `wb-slide-chip ${idx === this.currentIndex ? 'active' : ''}`;
-      chip.id = `wb_chip_${idx}`;
-      chip.dataset.index = String(idx);
-
-      const num = document.createElement('span');
-      num.className = 'chip-num';
-      num.textContent = `Slide ${idx + 1}`;
-
-      const title = document.createElement('span');
-      title.className = 'chip-title';
-      title.textContent = (step.heading || `Step ${idx + 1}`).replace(/\*\*/g, '');
-
-      chip.append(num, title);
-      chip.addEventListener('click', () => {
-        this.seekToStep(idx);
-      });
-      deck.appendChild(chip);
-    });
-
-    const prevBtn = this.slideDeckPrev || document.getElementById('slideDeckPrev');
-    const nextBtn = this.slideDeckNext || document.getElementById('slideDeckNext');
-    if (prevBtn && !prevBtn._bound) {
-      prevBtn._bound = true;
-      prevBtn.addEventListener('click', () => {
-        deck.scrollBy({ left: -220, behavior: 'smooth' });
-      });
-    }
-    if (nextBtn && !nextBtn._bound) {
-      nextBtn._bound = true;
-      nextBtn.addEventListener('click', () => {
-        deck.scrollBy({ left: 220, behavior: 'smooth' });
-      });
-    }
-    if (!deck._boundWheel) {
-      deck._boundWheel = true;
-      deck.addEventListener('wheel', e => {
-        if (e.deltaY !== 0) {
-          e.preventDefault();
-          deck.scrollLeft += e.deltaY;
-        }
-      }, { passive: false });
-    }
   }
 
   async playStep(index) {
@@ -1126,23 +1061,12 @@ class WhiteboardPlaybackController {
   }
 
   highlightTranscriptCard(index) {
-    if (this.chatContainer) {
-      const cards = this.chatContainer.querySelectorAll('.wb-msg');
-      cards.forEach((c, i) => c.classList.toggle('active', i === index));
-      const activeCard = document.getElementById(`wb_msg_${index}`);
-      if (activeCard) {
-        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    }
-
-    const deck = this.slideDeck || document.getElementById('wbSlideDeck');
-    if (deck) {
-      const chips = deck.querySelectorAll('.wb-slide-chip');
-      chips.forEach((c, i) => c.classList.toggle('active', i === index));
-      const activeChip = document.getElementById(`wb_chip_${index}`);
-      if (activeChip) {
-        activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
+    if (!this.chatContainer) return;
+    const cards = this.chatContainer.querySelectorAll('.wb-msg');
+    cards.forEach((c, i) => c.classList.toggle('active', i === index));
+    const activeCard = document.getElementById(`wb_msg_${index}`);
+    if (activeCard) {
+      activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
 
@@ -1367,26 +1291,20 @@ class WhiteboardPlaybackController {
       const newSegments = Array.isArray(patch.segments) ? patch.segments : [];
       if (!newSegments.length) throw new Error('No clarification segments returned.');
 
-      // Mark all new segments with clearBoard if replacing or for clean multi-slide sequence
-      newSegments.forEach((s, i) => {
-        if (i === 0 || s.clearBoard !== false) s.clearBoard = true;
-      });
+      // Mark first clarification step to clear the board for a fresh slide
+      newSegments[0].clearBoard = true;
 
       if (patch.strategy === 'replace') {
         this.steps = newSegments;
         this.currentIndex = 0;
-        this.renderTranscriptSidebar();
-        this.renderSlideDeck();
-        this.updateControls();
-        this.seekToStep(0);
       } else {
-        const nextIdx = this.currentIndex + 1;
-        this.steps.splice(nextIdx, 0, ...newSegments);
-        this.renderTranscriptSidebar();
-        this.renderSlideDeck();
-        this.updateControls();
-        this.seekToStep(nextIdx);
+        // Append right after current step
+        this.steps.splice(this.currentIndex + 1, 0, ...newSegments);
       }
+
+      this.renderTranscriptSidebar();
+      this.updateControls();
+      this.seekToStep(this.currentIndex + 1);
     } catch (e) {
       if (this.statusEl) this.statusEl.textContent = 'Interruption notice: ' + e.message;
     }
