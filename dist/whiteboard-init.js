@@ -53,12 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
   $('downloadSvgBtn')?.addEventListener('click', () => controller.exportSvg());
 
   // Interruption handling
-  const sendInterrupt = () => {
+  const sendInterrupt = async () => {
     const input = $('wbInterruptInput');
+    const btn = $('wbSendInterrupt');
     const cmd = input?.value?.trim();
     if (!cmd) return;
     input.value = '';
-    controller.handleInterruption(cmd, $('concept')?.value?.trim());
+    if (btn) btn.disabled = true;
+    if ($('wbStatusBar')) $('wbStatusBar').textContent = `Drawing new slide for: "${cmd}"...`;
+    try {
+      await controller.handleInterruption(cmd, $('concept')?.value?.trim());
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   };
 
   $('wbSendInterrupt')?.addEventListener('click', sendInterrupt);

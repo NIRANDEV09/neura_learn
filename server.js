@@ -116,7 +116,15 @@ When teaching mechanics, pulleys, connected blocks, or inclined planes (e.g. JEE
    - DIAGRAM ZONE (Y: 60 - 450, X: 60 - 900): Incline, blocks, pulleys, force arrows.
    - EQUATIONS ZONE (Y: 480 - 600, X: 60 - 460): Row 1 (y: 500), Row 2 (y: 540), Row 3 (y: 580).
    - SOLUTION & BOX ZONE (Y: 480 - 685, X: 480 - 930): Row 1 (y: 500), Row 2 (y: 540), Row 3 (y: 580), Solution Card (y: 610 - 685).
-   - Maintain at least 35px vertical separation between text elements. NEVER place text elements at the exact same or overlapping coordinates!`;
+   - Maintain at least 35px vertical separation between text elements. NEVER place text elements at the exact same or overlapping coordinates!
+9. MATH TYPOGRAPHY & NOTATION (NO CODE UNDERSCORES):
+   - NEVER output raw programming snake_case underscores in formulas or labels (NEVER write 'm_A', 'm_B', 'N_A', 'f_1', 'f_floor', 'mu', 'm/s^2', '4 * 10').
+   - Use standard mathematical symbols and notation:
+     * Use subscripts: 'm₁', 'm₂', 'm₃' or 'N₁', 'N₂', 'f₁', 'f₂', 'f(floor)'.
+     * Use Greek letters: 'μ' (never 'mu'), 'θ' (never 'theta').
+     * Use math dot for multiplication: '·' (never '*').
+     * Use superscripts: 'm/s²' (never 'm/s^2').
+     * Example: write 'N₁ = m₁·g = 4 · 10 = 40 N' instead of 'N_A = m_A * g = 4 * 10 = 40 N'.`;
 
 function parseModelJson(text){const clean=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();try{return JSON.parse(clean)}catch{}const start=clean.indexOf('{');if(start<0)throw new Error('no JSON object');let depth=0,inString=false,escaped=false;for(let i=start;i<clean.length;i++){const c=clean[i];if(inString){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')inString=false;continue}if(c==='"'){inString=true;continue}if(c==='{')depth++;else if(c==='}'&&--depth===0){return JSON.parse(clean.slice(start,i+1))}}throw new Error('incomplete JSON object')}
 async function askGemini(system, user, temperature=0.25, maxOutputTokens=4096, options={}) {
@@ -204,34 +212,40 @@ async function askLLM(system,user,temperature=0.25,maxOutputTokens=4096,options=
   return LLM_PROVIDER==='groq' ? askGroq(system,user,temperature,maxOutputTokens,options) : askGemini(system,user,temperature,maxOutputTokens,options);
 }
 const lessonRules = `You are NeuraLearn, an expert AI whiteboard professor. Teach the learner's requested concept, level, language, and constraints by progressively drawing and annotating an SVG diagram. Be accurate, explain prerequisites when needed, use examples, and make visuals concept-specific. Return valid JSON only. ${lessonSchema}`;
-const interruptRules = `You are NeuraLearn's live whiteboard lesson editor. The student interrupted an ongoing animated lesson with a question or request. Return ONLY one valid JSON object with exactly this shape:
+const interruptRules = `You are NeuraLearn's live whiteboard lesson editor. The student interrupted an ongoing animated lesson with a specific question or request (e.g. asking to explain differently, asking why a formula works, or asking for clarification).
+Return ONLY one valid JSON object with exactly this shape:
 {
-  "acknowledgement": "one brief spoken sentence answering or clarifying the student's question",
+  "acknowledgement": "one brief spoken sentence directly addressing the student's question",
+  "clearBoard": true,
   "segments": [
     {
-      "heading": "Focused clarification or zoom-in",
-      "narration": "one to three clear spoken sentences directly answering the question",
+      "heading": "Clarification: [Short title of the student's question]",
+      "narration": "two to three natural spoken sentences explaining this step directly",
       "duration": 3000-5000,
       "actions": [
         {
           "op": "draw_path|draw_rect|draw_circle|draw_arrow|draw_text|draw_formula|flow|highlight|reveal",
-          "id": "patchId",
-          "d": "...",
+          "id": "patchId1",
           "x": 0-960, "y": 0-700,
+          "width": 10-600, "height": 10-400,
           "x1": 0-960, "y1": 0-700, "x2": 0-960, "y2": 0-700,
           "cx": 0-960, "cy": 0-700, "r": 5-80,
           "stroke": "#hex", "strokeWidth": 1-5,
           "fill": "none|#hex",
-          "text": "short annotation or label",
+          "text": "clean math or label",
           "fontSize": 14-22, "fontWeight": "bold",
           "color": "#hex", "duration": 800, "delay": 200, "arrowEnd": true
         }
       ]
     }
   ],
-  "strategy": "append|clarify|replace"
+  "strategy": "new_slide"
 }
-Usually return 1-2 segments and 2-5 drawing actions per segment. Keep the active lesson context and add only new board marks to clarify the student's question; do not wipe existing marks unless explicitly asked to redraw. JSON only, no markdown.`;
+NEW SLIDE MANDATE:
+1. Always create 1-2 dedicated clarification steps that draw a fresh, clean explanation slide on the whiteboard.
+2. Set 'clearBoard': true so the board is cleared for this new clarification slide.
+3. Draw a clear visual diagram (e.g. zoom-in of the specific block, isolated forces, or step-by-step arithmetic) that directly answers their question.
+4. MATH NOTATION: NEVER output raw code snake_case underscores (write 'm₁', 'm₂', 'N₁', 'f₁', 'μ', '·' instead of 'm_A', 'm_B', 'mu', '*'). JSON only, no markdown.`;
 
 async function route(req,res) {
   const url = new URL(req.url, `http://${req.headers.host||'localhost'}`);

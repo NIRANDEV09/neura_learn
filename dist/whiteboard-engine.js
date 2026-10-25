@@ -626,6 +626,52 @@ class WhiteboardRenderer {
     }, animated);
   }
 
+  beautifyMathText(raw) {
+    if (!raw) return '';
+    let s = String(raw);
+    s = s.replace(/\bmu\b/gi, 'μ');
+    s = s.replace(/\btheta\b/gi, 'θ');
+    s = s.replace(/\balpha\b/gi, 'α');
+    s = s.replace(/\bbeta\b/gi, 'β');
+    s = s.replace(/\bpi\b/gi, 'π');
+    s = s.replace(/\s*\*\s*/g, ' · ');
+    s = s.replace(/\^2\b/g, '²');
+    s = s.replace(/\^3\b/g, '³');
+    return s;
+  }
+
+  setFormattedText(el, textStr) {
+    const formatted = this.beautifyMathText(textStr);
+    
+    // Parse snake_case subscripts (m_A, N_1, f_floor) and superscripts (^4)
+    if (/[_][A-Za-z0-9]+|\^[0-9]+/.test(formatted)) {
+      el.innerHTML = '';
+      const tokens = formatted.split(/(_[A-Za-z0-9]+|\^[0-9]+)/g);
+      for (const token of tokens) {
+        if (!token) continue;
+        if (token.startsWith('_')) {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('baseline-shift', 'sub');
+          tspan.setAttribute('font-size', '0.74em');
+          tspan.textContent = token.slice(1);
+          el.appendChild(tspan);
+        } else if (token.startsWith('^')) {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('baseline-shift', 'super');
+          tspan.setAttribute('font-size', '0.74em');
+          tspan.textContent = token.slice(1);
+          el.appendChild(tspan);
+        } else {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.textContent = token;
+          el.appendChild(tspan);
+        }
+      }
+    } else {
+      el.textContent = formatted;
+    }
+  }
+
   renderText(id, action, animated) {
     let el = this.elements.get(id);
     if (!el || el.tagName.toLowerCase() !== 'text') {
@@ -693,7 +739,7 @@ class WhiteboardRenderer {
       el.removeAttribute('transform');
     }
 
-    el.textContent = textStr;
+    this.setFormattedText(el, textStr);
 
     if (animated) {
       el.style.opacity = '0';
@@ -869,6 +915,7 @@ class WhiteboardRenderer {
     this.clear();
     for (let s = 0; s <= upToStepIndex && s < steps.length; s++) {
       const seg = steps[s];
+      if (seg.clearBoard) this.clear();
       const actions = Array.isArray(seg.actions) ? seg.actions : (Array.isArray(seg.visuals) ? seg.visuals : []);
       actions.forEach(action => this.executeAction(action, false));
     }
@@ -984,6 +1031,9 @@ class WhiteboardPlaybackController {
     const token = this.activeStepToken;
 
     const step = this.steps[index];
+    if (step && step.clearBoard) {
+      this.renderer.clear();
+    }
     this.updateControls();
 
     // 1. Highlight active transcript card and scroll into view
@@ -1213,6 +1263,9 @@ class WhiteboardPlaybackController {
       const newSegments = Array.isArray(patch.segments) ? patch.segments : [];
       if (!newSegments.length) throw new Error('No clarification segments returned.');
 
+      // Mark first clarification step to clear the board for a fresh slide
+      newSegments[0].clearBoard = true;
+
       if (patch.strategy === 'replace') {
         this.steps = newSegments;
         this.currentIndex = 0;
@@ -1222,7 +1275,8 @@ class WhiteboardPlaybackController {
       }
 
       this.renderTranscriptSidebar();
-      this.playStep(this.currentIndex + 1);
+      this.updateControls();
+      this.seekToStep(this.currentIndex + 1);
     } catch (e) {
       if (this.statusEl) this.statusEl.textContent = 'Interruption notice: ' + e.message;
     }
