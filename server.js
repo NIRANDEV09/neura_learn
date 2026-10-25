@@ -31,6 +31,24 @@ function send(res, status, data, type='application/json; charset=utf-8') {
 function readBody(req) { return new Promise((resolve,reject)=>{let s=''; req.on('data',c=>{s+=c; if(s.length>4e7) req.destroy();}); req.on('end',()=>{try{resolve(JSON.parse(s||'{}'));}catch(e){reject(e);}}); req.on('error',reject);}); }
 const { matchDeterministicTopic } = require('./lib/deterministic-lessons.js');
 
+function proxyToVideoServer(req, res) {
+  const options = {
+    hostname: '127.0.0.1',
+    port: 3005,
+    path: req.url,
+    method: req.method,
+    headers: { ...req.headers, host: '127.0.0.1:3005' }
+  };
+  const proxyReq = http.request(options, proxyRes => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res, { end: true });
+  });
+  proxyReq.on('error', () => {
+    send(res, 502, { error: 'Video explainer service is starting or unavailable. Please retry in a few seconds.' });
+  });
+  req.pipe(proxyReq, { end: true });
+}
+
 function buildGeminiUserParts(text, attachment) {
   const parts = [];
   if (attachment && attachment.data && attachment.mimeType) {
@@ -220,6 +238,11 @@ Usually return 1-2 segments and 2-5 drawing actions per segment. Keep the active
 async function route(req,res) {
   const url = new URL(req.url, `http://${req.headers.host||'localhost'}`);
   if (req.method==='OPTIONS') { res.writeHead(204, {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}); return res.end(); }
+  const isVideoReferer = Boolean(req.headers.referer && req.headers.referer.includes('/app'));
+  const isVideoApi = ['/api/explain', '/api/ocr', '/api/code-lesson', '/api/computed-lesson', '/api/factcheck', '/api/catalog', '/api/sources', '/api/tts', '/api/config'].includes(url.pathname);
+  if (url.pathname.startsWith('/app') || isVideoApi || (isVideoReferer && (url.pathname === '/api/health' || url.pathname === '/api/interrupt'))) {
+    return proxyToVideoServer(req, res);
+  }
   if (url.pathname==='/api/health') return send(res,200,{ok:true,provider:LLM_PROVIDER,model:ACTIVE_MODEL,apiKeyConfigured:!!ACTIVE_KEY,chatProvider:'groq',chatModel:GROQ_CHAT_MODEL,chatApiKeyConfigured:!!GROQ_API_KEY});
   if (req.method==='POST' && url.pathname==='/api/chat') {
     if(!GROQ_API_KEY)return send(res,503,{error:'GROQ_API_KEY is missing. Add it to .env and restart the local server.'});
