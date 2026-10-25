@@ -637,9 +637,23 @@ class WhiteboardRenderer {
       this.elements.set(id, el);
     }
 
-    const x = this.normalizeX(action.x);
-    const y = this.normalizeY(action.y);
+    let x = this.normalizeX(action.x);
+    let y = this.normalizeY(action.y);
     const textStr = String(action.text || action.label || '');
+
+    // Anti-collision: if another distinct text element already occupies this exact position, shift y down
+    if (textStr && textStr.length > 2 && this.gText) {
+      const existingTexts = Array.from(this.gText.querySelectorAll('text'));
+      for (const other of existingTexts) {
+        if (other === el || other.getAttribute('id') === id) continue;
+        const ox = Number(other.getAttribute('x'));
+        const oy = Number(other.getAttribute('y'));
+        const otherStr = other.textContent || '';
+        if (Math.abs(y - oy) < 22 && Math.abs(x - ox) < Math.max(80, otherStr.length * 8)) {
+          y = oy + 32;
+        }
+      }
+    }
 
     // Mathematical formula and code detection for academic font rendering
     const isFormula = action.op === 'draw_formula' || action.isFormula || 
